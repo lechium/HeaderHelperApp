@@ -14,6 +14,7 @@
 		3275EB6222A1D0E900AD859F /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 3275EB6122A1D0E900AD859F /* main.m */; };
 		3275EB6B22A1D0FF00AD859F /* HelperClass.m in Sources */ = {isa = PBXBuildFile; fileRef = 3275EB6A22A1D0FF00AD859F /* HelperClass.m */; };
 		32EE78D122A1D40800DB0293 /* class-dump in Resources */ = {isa = PBXBuildFile; fileRef = 32EE78D022A1D40800DB0293 /* class-dump */; };
+		4CDA2B252862690000566FBB /* libclassdump.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CDA2B242862690000566FBB /* libclassdump.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,6 +30,7 @@
 		3275EB6922A1D0FF00AD859F /* HelperClass.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HelperClass.h; sourceTree = "<group>"; };
 		3275EB6A22A1D0FF00AD859F /* HelperClass.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = HelperClass.m; sourceTree = "<group>"; };
 		32EE78D022A1D40800DB0293 /* class-dump */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "class-dump"; sourceTree = "<group>"; };
+		4CDA2B242862690000566FBB /* libclassdump.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libclassdump.a; path = HeaderHelperApp/libclassdump.a; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -36,6 +38,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4CDA2B252862690000566FBB /* libclassdump.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -45,6 +48,7 @@
 		3275EB4C22A1D0E700AD859F = {
 			isa = PBXGroup;
 			children = (
+				4CDA2B242862690000566FBB /* libclassdump.a */,
 				3275EB5722A1D0E700AD859F /* HeaderHelperApp */,
 				3275EB5622A1D0E700AD859F /* Products */,
 			);
@@ -292,8 +296,18 @@
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = "";
+				HEADER_SEARCH_PATHS = "$SRCROOT/$PRODUCT_NAME/usr/**";
 				INFOPLIST_FILE = HeaderHelperApp/Info.plist;
+				LD_DYLIB_ALLOWABLE_CLIENTS = "";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/HeaderHelperApp",
+				);
+				OTHER_LDFLAGS = (
+					"-all_load",
+					"-ObjC",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.nito.HeaderHelperApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -308,8 +322,18 @@
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = "";
+				HEADER_SEARCH_PATHS = "$SRCROOT/$PRODUCT_NAME/usr/**";
 				INFOPLIST_FILE = HeaderHelperApp/Info.plist;
+				LD_DYLIB_ALLOWABLE_CLIENTS = "";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/HeaderHelperApp",
+				);
+				OTHER_LDFLAGS = (
+					"-all_load",
+					"-ObjC",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.nito.HeaderHelperApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

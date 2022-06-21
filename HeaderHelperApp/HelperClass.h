@@ -12,7 +12,7 @@
 @interface HelperClass : NSObject
 
 - (void)doStuffWithFolder:(NSString *)folderPath;
-
+- (void)doStuffWithFile:(NSString *)file;
 @end
 
 

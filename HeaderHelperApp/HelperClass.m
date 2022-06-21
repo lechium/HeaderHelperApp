@@ -7,8 +7,16 @@
 //
 
 #import "HelperClass.h"
+#import "classdump.h"
 
 @implementation HelperClass
+
+- (void)doStuffWithFile:(NSString *)file {
+    NSString *outputFolder = [NSHomeDirectory() stringByAppendingPathComponent:@"Desktop/HHT"];
+    [[NSFileManager defaultManager] createDirectoryAtPath:outputFolder withIntermediateDirectories:true attributes:nil error:nil];
+    NSLog(@"performing class dump on file: %@ to folder: %@", file, outputFolder);
+    [classdump performClassDumpOnFile:file toFolder:outputFolder];
+}
 
 - (void)doStuffWithFolder:(NSString *)folderPath {
     
@@ -41,6 +49,29 @@
     });
 }
 
++ (NSArray *)returnForProcess:(NSString *)call {
+    if (call==nil)
+        return 0;
+    char line[200];
+     NSLog(@"running process: %@", call);
+    FILE* fp = popen([call UTF8String], "r");
+    NSMutableArray *lines = [[NSMutableArray alloc]init];
+    if (fp) {
+        while (fgets(line, sizeof line, fp)) {
+            NSString *s = [NSString stringWithCString:line encoding:NSUTF8StringEncoding];
+            s = [s stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+            [lines addObject:s];
+        }
+    }
+    pclose(fp);
+    return lines;
+}
+
++ (NSArray *)rawDaemonList {
+    NSArray *returnValue = [self returnForProcess:@"/usr/bin/find / -name \"com.*.plist\""];
+    NSLog(@"find return: %@", returnValue);
+    return returnValue;
+}
 
 - (int)runCommand:(NSString *)call
 {

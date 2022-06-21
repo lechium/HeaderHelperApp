@@ -22,16 +22,16 @@
     // Insert code here to initialize your application
     
     NSOpenPanel *op = [NSOpenPanel new];
-    [op setCanChooseDirectories:TRUE];
-    [op setCanChooseFiles:FALSE];
+    [op setCanChooseDirectories:FALSE];
+    [op setCanChooseFiles:TRUE];
     NSModalResponse resp = [op runModal];
     
     if (resp == NSModalResponseOK){
         
         NSString *file = [op filename];
         HelperClass *hc = [HelperClass new];
-        [hc doStuffWithFolder:file];
-        
+        //[hc doStuffWithFolder:file];
+        [hc doStuffWithFile:file];
         
     }
     
