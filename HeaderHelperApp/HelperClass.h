@@ -13,6 +13,9 @@
 
 - (void)doStuffWithFolder:(NSString *)folderPath;
 - (void)doStuffWithFile:(NSString *)file;
+- (void)processRootFolder:(NSString *)rootFolder;
+- (id)testGetEnts:(NSString *)inputFile;
+- (void)getFileEntitlements:(NSString *)inputFile withCompletion:(void(^)(NSString *entitlements))block;
 @end
 
 

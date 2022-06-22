@@ -15,7 +15,22 @@
 		3275EB6B22A1D0FF00AD859F /* HelperClass.m in Sources */ = {isa = PBXBuildFile; fileRef = 3275EB6A22A1D0FF00AD859F /* HelperClass.m */; };
 		32EE78D122A1D40800DB0293 /* class-dump in Resources */ = {isa = PBXBuildFile; fileRef = 32EE78D022A1D40800DB0293 /* class-dump */; };
 		4CDA2B252862690000566FBB /* libclassdump.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CDA2B242862690000566FBB /* libclassdump.a */; };
+		4CDA2B2D286377E100566FBB /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 4CDA2B2C286377E100566FBB /* main.m */; };
+		4CDA2B31286377E900566FBB /* HelperClass.m in Sources */ = {isa = PBXBuildFile; fileRef = 3275EB6A22A1D0FF00AD859F /* HelperClass.m */; };
+		4CDA2B322863783B00566FBB /* libclassdump.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4CDA2B242862690000566FBB /* libclassdump.a */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		4CDA2B28286377E100566FBB /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		3234848E24DFF8CC0010DA6E /* classdumpios */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = classdumpios; sourceTree = "<group>"; };
@@ -31,6 +46,8 @@
 		3275EB6A22A1D0FF00AD859F /* HelperClass.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = HelperClass.m; sourceTree = "<group>"; };
 		32EE78D022A1D40800DB0293 /* class-dump */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "class-dump"; sourceTree = "<group>"; };
 		4CDA2B242862690000566FBB /* libclassdump.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libclassdump.a; path = HeaderHelperApp/libclassdump.a; sourceTree = "<group>"; };
+		4CDA2B2A286377E100566FBB /* getEntitlements */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = getEntitlements; sourceTree = BUILT_PRODUCTS_DIR; };
+		4CDA2B2C286377E100566FBB /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -42,6 +59,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		4CDA2B27286377E100566FBB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4CDA2B322863783B00566FBB /* libclassdump.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -50,6 +75,7 @@
 			children = (
 				4CDA2B242862690000566FBB /* libclassdump.a */,
 				3275EB5722A1D0E700AD859F /* HeaderHelperApp */,
+				4CDA2B2B286377E100566FBB /* getEntitlements */,
 				3275EB5622A1D0E700AD859F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -58,6 +84,7 @@
 			isa = PBXGroup;
 			children = (
 				3275EB5522A1D0E700AD859F /* HeaderHelperApp.app */,
+				4CDA2B2A286377E100566FBB /* getEntitlements */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -80,6 +107,14 @@
 			path = HeaderHelperApp;
 			sourceTree = "<group>";
 		};
+		4CDA2B2B286377E100566FBB /* getEntitlements */ = {
+			isa = PBXGroup;
+			children = (
+				4CDA2B2C286377E100566FBB /* main.m */,
+			);
+			path = getEntitlements;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -100,6 +135,23 @@
 			productReference = 3275EB5522A1D0E700AD859F /* HeaderHelperApp.app */;
 			productType = "com.apple.product-type.application";
 		};
+		4CDA2B29286377E100566FBB /* getEntitlements */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4CDA2B2E286377E100566FBB /* Build configuration list for PBXNativeTarget "getEntitlements" */;
+			buildPhases = (
+				4CDA2B26286377E100566FBB /* Sources */,
+				4CDA2B27286377E100566FBB /* Frameworks */,
+				4CDA2B28286377E100566FBB /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = getEntitlements;
+			productName = getEntitlements;
+			productReference = 4CDA2B2A286377E100566FBB /* getEntitlements */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -118,6 +170,10 @@
 							};
 						};
 					};
+					4CDA2B29286377E100566FBB = {
+						CreatedOnToolsVersion = 13.2.1;
+						ProvisioningStyle = Automatic;
+					};
 				};
 			};
 			buildConfigurationList = 3275EB5022A1D0E700AD859F /* Build configuration list for PBXProject "HeaderHelperApp" */;
@@ -134,6 +190,7 @@
 			projectRoot = "";
 			targets = (
 				3275EB5422A1D0E700AD859F /* HeaderHelperApp */,
+				4CDA2B29286377E100566FBB /* getEntitlements */,
 			);
 		};
 /* End PBXProject section */
@@ -160,6 +217,15 @@
 				3275EB6222A1D0E900AD859F /* main.m in Sources */,
 				3275EB6B22A1D0FF00AD859F /* HelperClass.m in Sources */,
 				3275EB5A22A1D0E700AD859F /* AppDelegate.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4CDA2B26286377E100566FBB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4CDA2B31286377E900566FBB /* HelperClass.m in Sources */,
+				4CDA2B2D286377E100566FBB /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -340,6 +406,50 @@
 			};
 			name = Release;
 		};
+		4CDA2B2F286377E100566FBB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 9EUFEA5U7G;
+				ENABLE_HARDENED_RUNTIME = YES;
+				HEADER_SEARCH_PATHS = "$SRCROOT/$PRODUCT_NAME/usr/**";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/HeaderHelperApp",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 11.6;
+				OTHER_LDFLAGS = (
+					"-all_load",
+					"-ObjC",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		4CDA2B30286377E100566FBB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 9EUFEA5U7G;
+				ENABLE_HARDENED_RUNTIME = YES;
+				HEADER_SEARCH_PATHS = "$SRCROOT/$PRODUCT_NAME/usr/**";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/HeaderHelperApp",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 11.6;
+				OTHER_LDFLAGS = (
+					"-all_load",
+					"-ObjC",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -357,6 +467,15 @@
 			buildConfigurations = (
 				3275EB6722A1D0E900AD859F /* Debug */,
 				3275EB6822A1D0E900AD859F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4CDA2B2E286377E100566FBB /* Build configuration list for PBXNativeTarget "getEntitlements" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4CDA2B2F286377E100566FBB /* Debug */,
+				4CDA2B30286377E100566FBB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
