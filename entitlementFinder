@@ -1,0 +1,334 @@
+#!/bin/bash
+
+bold=$(tput bold)
+normal=$(tput sgr0)
+
+usage() {
+    echo ""
+    echo "usage: $0 -i <input search path> -s <entitlement keyword>"
+    echo ""
+    echo -e "\tDump entitlements into a plist file OR do a fuzzy case insensitive search for entitlements in frameworks, applications and LaunchDaemons"
+    echo -e "\tIf you provide the search/keyword argument, it will perform the search, if only input argument and it will perform the dump operation"
+    echo -e "\n\t-f --frameworks\t\tprocess/search frameworks [defaults to off]"
+    echo -e "\t-a --apps\t\tprocess/search applications [defaults to off]"
+    echo -e "\t-l --launchdaemons\tprocess/search LaunchDaemons [defaults to on]"
+    echo -e "\t-c --copy\t\twill find and copy all LaunchDaemons nto a new folder [defaults to off]\n"
+    trap - INT TERM EXIT
+    exit 1
+}
+
+if [ "$#" = 0 ]; then
+    #echo "You must enter at least 1 command line arguments"
+    usage
+    exit 0
+fi
+
+ldid=$(/usr/bin/which ldid)
+pbuddy=$(/usr/bin/which PlistBuddy)
+signargs="$ldid -e"
+
+if [ -z "$ldid" ]; then
+
+    ldid=$(/usr/bin/which jtool)
+    if [ -z "$ldid" ]; then
+        echo -e "\n\tERROR: ldid or jtool are required to run!\n"
+        exit 1
+    else
+        signargs="$ldid --ent"
+    fi
+fi
+
+ldid=$(/usr/bin/which getEntitlements)
+signargs="$ldid "
+echo $signargs
+#exit 0
+
+PLBUDDY_ALT=0
+FRAMEWORKS="false"
+APPS="false"
+LDS="true"
+VERBOSE="false"
+COPY="false"
+
+if [ -z "$pbuddy" ]; then
+    if [ "$VERBOSE" == "true" ]; then
+        echo "PlistBuddy not found with which, searching  at /usr/libexec/PlistBuddy"
+    fi	
+    pbuddy="/usr/libexec/PlistBuddy"
+    if [ ! -f "$pbuddy" ]; then
+        echo "/usr/libexec/PlistBuddy doesnt exist?"
+        pbuddy=$(/usr/bin/which plutil)
+        if [ ! -f "$pbuddy" ]; then
+            echo -e "\n\tERROR PlistBuddy or plutil is required to run!\n"
+            exit 1
+        else
+            PLBUDDY_ALT=1
+        fi	
+    else
+        echo "Found PlistBuddy at: $pbuddy"
+    fi
+fi
+
+#if [ ! -d "$1" ]; then
+#	echo -e "\n\tNo directory exists at path $1 try again specifying a valid path please!\n"
+#exit 1
+#fi
+
+while test $# -gt 0; do
+    case "$1" in
+        -h|--help)
+            usage
+            ;;
+        -c|--copy)
+            COPY="true"
+            shift
+            ;;
+        -f|--frameworks)
+            FRAMEWORKS="true"
+            shift
+            ;;
+        -a|--apps)
+            APPS="true"
+            shift
+            ;;
+        -l|--launchdaemons)
+            LDS="true"
+            shift
+            ;;
+        -v|--verbose)
+            VERBOSE="true"
+            shift
+            ;;
+        -i|--input-folder)
+            shift
+            if test $# -gt 0; then
+                INPUT_FOLDER="$1"
+                if [ ! -d "$INPUT_FOLDER" ]; then
+                    echo "Error: Invalid input folder"
+                    trap - INT TERM EXIT
+                    exit 1
+                fi
+            else
+                echo "Error: No input path given."
+                trap - INT TERM EXIT
+                exit 1
+            fi
+            shift
+            ;;
+        -s|--search-keyword)
+            shift
+            if test $# -gt 0; then
+                KEYWORD="$1"
+            fi
+            shift
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+nullCheck() {
+    PWD=$(pwd)
+    VALUE=$(grep "(null)" "$PWD/$1" -c)
+    if [ $VALUE == 1 ]; then
+        if [ "$VERBOSE" == "true" ]; then
+            echo "$1 IS NULL, REMOVING"
+        fi
+        rm $1
+    fi
+    return $VALUE
+}
+
+echo -e "\ninput folder: $INPUT_FOLDER\nkeyword: $KEYWORD\n"
+#exit 0
+
+if [ "$FRAMEWORKS" == "true" ]; then
+    echo ""
+    if [ -n "$KEYWORD" ]; then
+        echo "Testing framework entitlements for ${bold}'$KEYWORD'${normal}"
+    else
+        echo "Dumping framework entitlements"
+    fi
+    echo ""
+    FILES=$(find "$INPUT_FOLDER" -path "*.framework")
+
+    for f in $FILES
+    do
+        echo "Processing $f file..."
+        filename=$(basename "$f")
+        name=${filename%\.*}
+        fullpath="$f/$name"
+        #echo "full path: $fullpath"
+        if [ -f "$fullpath" ]; then 
+            if [ -n "$KEYWORD" ]; then
+                match=$($signargs "$fullpath" 2> /dev/null | grep -i "$KEYWORD")
+                if [ -n "$match" ]; then 
+                    echo "** MATCHED: ${bold}$filename""${normal}" 
+                    echo -e "\n\t\t$match"
+                    echo ""	
+                fi
+            else
+                #ldid -e "$fullpath"
+                echo ""
+                if [ ! -d "entitlements/Frameworks" ]; then
+                    mkdir -p entitlements/Frameworks
+                fi
+                echo "Dumping entitlements for: $filename" 
+                finalPath="entitlements/Frameworks/$filename.plist"
+                if [ "$VERBOSE" == "true" ]; then
+                    echo "$signargs $fullpath > $finalPath 2> /dev/null"
+                fi
+                $signargs "$fullpath" > "$finalPath" 2> /dev/null
+                nullCheck $finalPath
+
+            fi 
+        fi
+    done
+fi
+
+if [ "$APPS" == "true" ]; then
+    echo ""
+    if [ -n "$KEYWORD" ]; then
+        echo "Testing App entitlements for ${bold}'$KEYWORD'${normal}"
+    else
+        echo "Dumping App entitlements"
+    fi
+    echo ""
+
+    FILES=$(find "$INPUT_FOLDER" -path "*.app")
+    if [ "$VERBOSE" == "true" ]; then
+        echo "find $INPUT_FOLDER -path .app"
+    fi
+    #echo $FILES
+
+    for f in $FILES
+    do
+        filename=$(basename "$f")
+        name=${filename%\.*}
+        fullpath="$f/$name"
+        #echo "full path: $fullpath"
+        if [ "$VERBOSE" == "true" ]; then
+            echo "Processing $fullpath..."
+        fi
+        if [ -f "$fullpath" ]; then 
+            if [ -n "$KEYWORD" ]; then
+                match=$($signargs "$fullpath" 2> /dev/null | grep -i "$KEYWORD")
+                if [ -n "$match" ]; then 
+                    echo "** MATCHED: ${bold}$filename""${normal}" 
+                    echo -e "\n\t\t$match"
+                    echo ""	
+                fi
+            else
+                echo ""
+                if [ ! -d "entitlements/Apps" ]; then
+                    mkdir -p entitlements/Apps
+                fi
+                echo "Dumping entitlements for: $filename"
+                finalPath="entitlements/Apps/$filename.plist"
+                if [ "$VERBOSE" == "true" ]; then
+                    echo "$signargs $fullpath > $finalPath 2> /dev/null"
+                fi
+                $signargs "$fullpath" > "$finalPath" 2> /dev/null
+                nullCheck $finalPath
+
+            fi 
+        fi
+    done
+fi
+
+if [ "$LDS" == "true" ]; then
+    echo "Searching Launch Daemon entitlements..."
+    if [ "$VERBOSE" == "true" ]; then
+        echo "find $INPUT_FOLDER -name com.*.plist"
+    fi
+    FILES=$(find "$INPUT_FOLDER" -name "com.*.plist")
+
+    echo ""
+    if [ -n "$KEYWORD" ]; then
+        echo "Testing Launch Daemon entitlements for ${bold}'$KEYWORD'${normal}"
+    else
+        echo "Dumping Launch Daemon entitlements"
+    fi
+    echo ""
+    for f in $FILES
+    do
+
+        if [ "$VERBOSE" == "true" ]; then
+            echo "processing $f..."
+            echo "Searching for 'Program' Key..."
+        fi
+
+        if [ $PLBUDDY_ALT = 0 ]; then
+            $pbuddy -c 'Print Program' "$f" > .tmpout 2> /dev/null
+        else
+            plutil -key Program "$f" > .tmpout 2> /dev/null
+        fi
+        program=$(tr -d "\"" < .tmpout)
+        #echo $program
+        if [ -z  "${program}" ] ;then
+            if [ "$VERBOSE" == "true" ]; then
+                echo -e "\nNot found!!\nSearching for 'ProgramArguments' Key..."
+            fi
+            if [ $PLBUDDY_ALT = 0 ]; then
+                $pbuddy -c 'Print :ProgramArguments:0' "$f" > .tmpout 2> /dev/null
+            else
+                plutil -key ProgramArguments "$f" > .tmpout 2> /dev/null
+            fi
+            program=$(tr -d " ()\"\n" < .tmpout)
+
+        fi	
+        #echo $program
+        if [ -n "${program}" ] ;then
+
+            if [ "$VERBOSE" == "true" ]; then
+                echo -e "\t\t$program found!"
+            fi
+
+            ARCH=$(arch)
+            if [[ "$ARCH" == "arm"* ]]; then
+                fullpath="$program"
+            else
+                fullpath="$INPUT_FOLDER$program"
+            fi		
+            filename=$(basename "$fullpath")
+            #plistname=$(basename "$f")		
+            #echo "$plistname"
+            if [ -f "$fullpath" ]; then 
+                if [ "$COPY" == "true" ]; then
+                    if [ ! -d "usr/libexec" ]; then
+                        mkdir -p usr/libexec
+                    fi
+                    echo "Copying $fullpath to usr/libexec/$filename"
+                    cp "$fullpath" usr/libexec/"$filename"
+                fi
+                if [ -n "$KEYWORD" ]; then
+                    match=$($signargs "$fullpath" 2> /dev/null | grep -i "$KEYWORD")
+                    if [ -n "$match" ]; then 
+                        #echo $fullpath
+                        echo -e "** MATCHED: ${bold}$filename${normal} in ${bold}$f${normal}" 
+                        #echo -e "\n\t\t$match"
+                        echo -e "\n\t\t${bold}$match${normal}" #"\033[4mThis is a underlined line.\033[0m"
+                        echo ""	
+                    fi
+                else
+                    echo ""
+                    if [ ! -d "entitlements/Daemons" ]; then
+                        mkdir -p entitlements/Daemons
+                    fi
+                    echo "Dumping entitlements for: $filename" 
+                   
+                finalPath="entitlements/Daemons/$filename.plist"
+                if [ "$VERBOSE" == "true" ]; then
+                    echo "$signargs $fullpath > $finalPath 2> /dev/null"
+                fi
+                $signargs "$fullpath" > "$finalPath" 2> /dev/null
+                nullCheck $finalPath
+
+                fi 
+            fi
+        fi
+
+    done
+fi
+echo ""
