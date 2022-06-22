@@ -126,22 +126,33 @@
 
 - (void)processRootFolder:(NSString *)rootFolder {
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-        NSString *outputFolder = [NSHomeDirectory() stringByAppendingPathComponent:@"Desktop/entitlements"];
+        NSString *outputFolder = [NSHomeDirectory() stringByAppendingPathComponent:@"Desktop/export"];
         NSFileManager *man = [NSFileManager defaultManager];
         if (![man fileExistsAtPath:outputFolder]){
             [man createDirectoryAtPath:outputFolder withIntermediateDirectories:true attributes:nil error:nil];
         }
         NSArray *paths = [self rawDaemonPathsForPath:rootFolder];
         NSLog(@"%@", paths);
+        NSString *entOutput = [outputFolder stringByAppendingPathComponent:@"Entitlements"];
+        if (![man fileExistsAtPath:entOutput]){
+            [man createDirectoryAtPath:entOutput withIntermediateDirectories:true attributes:nil error:nil];
+        }
         [paths enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
             NSString *fullFilePath = [rootFolder stringByAppendingPathComponent:obj];
             [self getFileEntitlementsOnMainThread:fullFilePath withCompletion:^(NSString *entitlements) {
                 if (entitlements) {
-                    NSString *fileName = [[outputFolder stringByAppendingPathComponent:[obj lastPathComponent]] stringByAppendingPathExtension:@"plist"];
+                    NSString *fileName = [[entOutput stringByAppendingPathComponent:[obj lastPathComponent]] stringByAppendingPathExtension:@"plist"];
                     //NSLog(@"valid ents for %@ writing to file: %@", [obj lastPathComponent], fileName);
                     [entitlements writeToFile:fileName atomically:true encoding:NSUTF8StringEncoding error:nil];
                 }
             }];
+        }];
+        
+        //done with daemons et al
+        
+        NSArray *exportPaths = @[@"Applications", @"System/Library/Frameworks", @"System/Library/PrivateFrameworks"];
+        [exportPaths enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+            [self classDumpBundlesInFolder:[rootFolder stringByAppendingPathComponent:obj] toPath:[outputFolder stringByAppendingPathComponent:obj]];
         }];
         //NSString *outputFile = [NSHomeDirectory() stringByAppendingPathComponent:@"Desktop/daemons.plist"];
         //[rawDaemonDetails writeToFile:outputFile atomically:true];
@@ -155,13 +166,13 @@
     [classdump performClassDumpOnFile:file toFolder:outputFolder];
 }
 
-- (void)doStuffWithFolder:(NSString *)folderPath {
+- (void)classDumpBundlesInFolder:(NSString *)folderPath toPath:(NSString *)outputPath{
     
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
         NSFileManager *man = [NSFileManager defaultManager];
         NSArray *dirContents = [man contentsOfDirectoryAtPath:folderPath error:nil];
-        NSString *lastPath = [folderPath lastPathComponent];
-        NSString *outputPath = [folderPath stringByAppendingPathComponent:lastPath];
+        //NSString *lastPath = [folderPath lastPathComponent];
+        //NSString *outputPath = [folderPath stringByAppendingPathComponent:lastPath];
         [man createDirectoryAtPath:outputPath withIntermediateDirectories:TRUE attributes:nil error:nil];
         NSLog(@"dir contents: %@", dirContents);
         [dirContents enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
@@ -174,15 +185,17 @@
             NSString *exeName = dict[@"CFBundleExecutable"];
             NSString *exePath = [fullPath stringByAppendingPathComponent:exeName];
             
-            NSString *classDumpPath = [[NSBundle mainBundle] pathForResource:@"classdumpios" ofType:@""];
+            //NSString *classDumpPath = [[NSBundle mainBundle] pathForResource:@"classdumpios" ofType:@""];
             
-            NSString *runLine = [NSString stringWithFormat:@"%@ -a -A -H -o '%@' '%@'",classDumpPath, headerPath, exePath];
-            NSLog(@"%@", runLine);
-            [self runCommand: runLine];
+            //NSString *runLine = [NSString stringWithFormat:@"%@ -a -A -H -o '%@' '%@'",classDumpPath, headerPath, exePath];
+            //NSLog(@"%@", runLine);
+            //[self runCommand: runLine];
             //class-dump -a -A -H -I -o PrivateHeaders
             //
+            NSLog(@"[%lu of %lu] Dumping bundle: %@ ...", idx, dirContents.count, exePath.lastPathComponent);
+            [classdump performClassDumpOnFile:exePath toFolder:headerPath];
         }];
-        
+        NSLog(@"Finished: %@", folderPath);
     });
 }
 

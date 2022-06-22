@@ -23,7 +23,7 @@
     
     NSOpenPanel *op = [NSOpenPanel new];
     [op setCanChooseDirectories:true];
-    [op setCanChooseFiles:true];
+    [op setCanChooseFiles:false];
     NSModalResponse resp = [op runModal];
     
     if (resp == NSModalResponseOK){
@@ -32,7 +32,8 @@
         HelperClass *hc = [HelperClass new];
         
         [hc processRootFolder:file];
-        //[hc doStuffWithFolder:file];
+        //NSString *outputPath = [NSHomeDirectory() stringByAppendingPathComponent:@"Headers"];
+        //[hc classDumpBundlesInFolder:file toPath:outputPath];
         //[hc doStuffWithFile:file];
     }
     

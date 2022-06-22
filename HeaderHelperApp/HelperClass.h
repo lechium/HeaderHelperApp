@@ -11,7 +11,7 @@
 
 @interface HelperClass : NSObject
 
-- (void)doStuffWithFolder:(NSString *)folderPath;
+- (void)classDumpBundlesInFolder:(NSString *)folderPath toPath:(NSString *)outputPath;
 - (void)doStuffWithFile:(NSString *)file;
 - (void)processRootFolder:(NSString *)rootFolder;
 - (void)getFileEntitlements:(NSString *)inputFile withCompletion:(void(^)(NSString *entitlements))block;
