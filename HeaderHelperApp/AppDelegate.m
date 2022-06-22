@@ -22,7 +22,7 @@
     // Insert code here to initialize your application
     
     NSOpenPanel *op = [NSOpenPanel new];
-    [op setCanChooseDirectories:false];
+    [op setCanChooseDirectories:true];
     [op setCanChooseFiles:true];
     NSModalResponse resp = [op runModal];
     
@@ -30,13 +30,10 @@
         
         NSString *file = [op filename];
         HelperClass *hc = [HelperClass new];
+        
+        [hc processRootFolder:file];
         //[hc doStuffWithFolder:file];
         //[hc doStuffWithFile:file];
-        //NSDictionary *ents = [hc testGetEnts:file];
-        //NSLog(@"ents: %@", ents);
-        [hc getFileEntitlements:file withCompletion:^(NSDictionary *entitlements) {
-            NSLog(@"%@", entitlements);
-        }];
     }
     
     

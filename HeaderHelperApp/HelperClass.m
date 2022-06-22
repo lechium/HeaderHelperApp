@@ -9,6 +9,8 @@
 #import "HelperClass.h"
 #import "classdump.h"
 
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 @implementation NSString (extra)
 
 - (id)dictionaryRepresentation {
@@ -26,8 +28,63 @@
 
 @implementation HelperClass
 
+- (void)getFileEntitlementsOnMainThread:(NSString *)inputFile withCompletion:(void(^)(NSString *entitlements))block {
+    //NSLog(@"checking file: %@", inputFile);
+    if (![[NSFileManager defaultManager] fileExistsAtPath:inputFile]){
+        //NSLog(@"file doesnt exist: %@", inputFile);
+        if (block){
+            block(nil);
+        }
+        return;
+    }
+    NSString *fileContents = [NSString stringWithContentsOfFile:inputFile encoding:NSASCIIStringEncoding error:nil];
+    NSUInteger fileLength = [fileContents length];
+    if (fileLength == 0) {
+        fileContents = [NSString stringWithContentsOfFile:inputFile]; //if ascii doesnt work, have to use the deprecated (thankfully not obsolete!) method
+    }
+    fileLength = [fileContents length];
+    if (fileLength == 0){
+        if (block){
+            NSLog(@"file length is 0, failed: %@", inputFile);
+            block(nil);
+            return;
+        }
+    }
+    NSScanner *theScanner;
+    NSString *text = nil;
+    NSString *returnText = nil;
+    theScanner = [NSScanner scannerWithString:fileContents];
+    while ([theScanner isAtEnd] == NO) {
+        [theScanner scanUpToString:@"<?xml" intoString:NULL];
+        [theScanner scanUpToString:@"</plist>" intoString:&text];
+        text = [text stringByAppendingFormat:@"</plist>"];
+        //NSLog(@"text: %@", [text dictionaryRepresentation]);
+        NSDictionary *dict = [text dictionaryRepresentation];
+        if (dict && [dict allKeys].count > 0) {
+            if (![[dict allKeys] containsObject:@"CFBundleIdentifier"] && ![[dict allKeys] containsObject:@"cdhashes"]){
+                //NSLog(@"got im: %@", [[inputFile lastPathComponent] stringByDeletingPathExtension]);
+                returnText = text;
+                break;
+            }
+        } else {
+            NSLog(@"no entitlements found: %@", inputFile);
+        }
+    }
+    if (block){
+        block(returnText);
+    }
+}
+
 - (void)getFileEntitlements:(NSString *)inputFile withCompletion:(void(^)(NSString *entitlements))block {
+    //NSLog(@"checking file: %@", inputFile.lastPathComponent);
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+        if (![[NSFileManager defaultManager] fileExistsAtPath:inputFile]){
+            //NSLog(@"file doesnt exist: %@", inputFile);
+            if (block){
+                block(nil);
+            }
+            return;
+        }
         NSString *fileContents = [NSString stringWithContentsOfFile:inputFile encoding:NSASCIIStringEncoding error:nil];
         NSUInteger fileLength = [fileContents length];
         if (fileLength == 0) {
@@ -37,6 +94,7 @@
         if (fileLength == 0){
             if (block){
                 block(nil);
+                return;
             }
         }
         NSScanner *theScanner;
@@ -51,9 +109,12 @@
             NSDictionary *dict = [text dictionaryRepresentation];
             if (dict && [dict allKeys].count > 0) {
                 if (![[dict allKeys] containsObject:@"CFBundleIdentifier"] && ![[dict allKeys] containsObject:@"cdhashes"]){
+                    //NSLog(@"got im: %@", [[inputFile lastPathComponent] stringByDeletingPathExtension]);
                     returnText = text;
                     break;
                 }
+            } else {
+                NSLog(@"no entitlements found: %@", inputFile);
             }
         }
         if (block){
@@ -62,72 +123,28 @@
     });
 }
 
-- (id)testGetEnts:(NSString *)inputFile {
-    NSString *fileContents = [NSString stringWithContentsOfFile:inputFile encoding:NSASCIIStringEncoding error:nil];
-    NSUInteger fileLength = [fileContents length];
-    if (fileLength == 0) {
-        fileContents = [NSString stringWithContentsOfFile:inputFile]; //if ascii doesnt work, have to use the deprecated (thankfully not obsolete!) method
-    }
-    fileLength = [fileContents length];
-    if (fileLength == 0)
-        return nil;
-    
-    NSScanner *theScanner;
-    NSString *text = nil;
-    NSDictionary *returnDict = nil;
-    theScanner = [NSScanner scannerWithString:fileContents];
-    while ([theScanner isAtEnd] == NO) {
-        [theScanner scanUpToString:@"<?xml" intoString:NULL];
-        [theScanner scanUpToString:@"</plist>" intoString:&text];
-        text = [text stringByAppendingFormat:@"\n</plist>"];
-        //NSLog(@"text: %@", [text dictionaryRepresentation]);
-        NSDictionary *dict = [text dictionaryRepresentation];
-        if (dict && [dict allKeys].count > 0) {
-            if (![[dict allKeys] containsObject:@"CFBundleExecutable"] && ![[dict allKeys] containsObject:@"cdhashes"]){
-                returnDict = dict;
-                NSLog(@"got im?");
-                break;
-                //[dicts addObject:dict];
-            }
-        }
-    }
-    return returnDict;
-}
-
-- (NSString *)testGetEntso:(NSString *)inputFile {
-    NSString *fileContents = [NSString stringWithContentsOfFile:inputFile encoding:NSASCIIStringEncoding error:nil];
-    NSUInteger fileLength = [fileContents length];
-    if (fileLength == 0)
-        fileContents = [NSString stringWithContentsOfFile:inputFile]; //if ascii doesnt work, have to use the deprecated (thankfully not obsolete!) method
-    
-    fileLength = [fileContents length];
-    if (fileLength == 0)
-        return nil;
-    
-    NSUInteger startingLocation = [fileContents rangeOfString:@"<?xml"].location;
-    
-    //find NSRange of the end of the plist (there is "junk" cert data after our plist info as well
-    NSRange endingRange = [fileContents rangeOfString:@"</plist>"];
-    
-    //adjust the location of endingRange to include </plist> into our newly trimmed string.
-    NSUInteger endingLocation = endingRange.location + endingRange.length;
-    
-    //offset the ending location to trim out the "garbage" before <?xml
-    NSUInteger endingLocationAdjusted = endingLocation - startingLocation;
-    
-    //create the final range of the string data from <?xml to </plist>
-    
-    NSRange plistRange = NSMakeRange(startingLocation, endingLocationAdjusted);
-    
-    //actually create our string!
-    return [fileContents substringWithRange:plistRange];
-}
 
 - (void)processRootFolder:(NSString *)rootFolder {
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-        NSDictionary *rawDaemonDetails = [self rawDaemonDetailsForPath:rootFolder];
-        NSString *outputFile = [NSHomeDirectory() stringByAppendingPathComponent:@"Desktop/daemons.plist"];
-        [rawDaemonDetails writeToFile:outputFile atomically:true];
+        NSString *outputFolder = [NSHomeDirectory() stringByAppendingPathComponent:@"Desktop/entitlements"];
+        NSFileManager *man = [NSFileManager defaultManager];
+        if (![man fileExistsAtPath:outputFolder]){
+            [man createDirectoryAtPath:outputFolder withIntermediateDirectories:true attributes:nil error:nil];
+        }
+        NSArray *paths = [self rawDaemonPathsForPath:rootFolder];
+        NSLog(@"%@", paths);
+        [paths enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+            NSString *fullFilePath = [rootFolder stringByAppendingPathComponent:obj];
+            [self getFileEntitlementsOnMainThread:fullFilePath withCompletion:^(NSString *entitlements) {
+                if (entitlements) {
+                    NSString *fileName = [[outputFolder stringByAppendingPathComponent:[obj lastPathComponent]] stringByAppendingPathExtension:@"plist"];
+                    //NSLog(@"valid ents for %@ writing to file: %@", [obj lastPathComponent], fileName);
+                    [entitlements writeToFile:fileName atomically:true encoding:NSUTF8StringEncoding error:nil];
+                }
+            }];
+        }];
+        //NSString *outputFile = [NSHomeDirectory() stringByAppendingPathComponent:@"Desktop/daemons.plist"];
+        //[rawDaemonDetails writeToFile:outputFile atomically:true];
     });
 }
 
@@ -194,7 +211,7 @@
     if (call==nil)
         return 0;
     char line[200];
-     NSLog(@"running process: %@", call);
+    NSLog(@"running process: %@", call);
     FILE* fp = popen([call UTF8String], "r");
     NSMutableArray *lines = [[NSMutableArray alloc]init];
     if (fp) {
@@ -206,6 +223,32 @@
     }
     pclose(fp);
     return lines;
+}
+
+- (NSArray *)rawDaemonPathsForPath:(NSString *)path {
+    NSArray *fullDaemonList = [HelperClass rawDaemonListAtPath:path];
+    __block NSMutableArray *programList = [NSMutableArray new];
+    [fullDaemonList enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        
+        if ([[obj pathExtension] isEqualToString:@"plist"]){
+            NSDictionary *dirtyDeeds = [NSDictionary dictionaryWithContentsOfFile:obj];
+            if (dirtyDeeds){
+                NSString *programPath = nil;
+                if ([[dirtyDeeds allKeys] containsObject:@"Program"]){
+                    programPath = dirtyDeeds[@"Program"];
+                    //NSLog(@"program: %@", programPath);
+                } else if ([[dirtyDeeds allKeys] containsObject:@"ProgramArguments"]){
+                    programPath = [dirtyDeeds[@"ProgramArguments"] firstObject];
+                    //NSLog(@"program: %@", programPath);
+                }
+                //NSLog(@"dictKey: %@", dictKey);
+                if (programPath != nil){
+                    [programList addObject:programPath];
+                }
+            }
+        }
+    }];
+    return programList;
 }
 
 - (NSDictionary *)rawDaemonDetailsForPath:(NSString *)path {
@@ -251,7 +294,7 @@
     if (call==nil)
         return 0;
     char line[200];
-     NSLog(@"running process: %@", call);
+    NSLog(@"running process: %@", call);
     FILE* fp = popen([call UTF8String], "r");
     NSMutableArray *lines = [[NSMutableArray alloc]init];
     if (fp) {
