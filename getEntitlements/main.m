@@ -8,7 +8,6 @@
 
 #import <Foundation/Foundation.h>
 #import "HelperClass.h"
-#define DLog(format, ...) CFShow((__bridge CFStringRef)[NSString stringWithFormat:format, ## __VA_ARGS__]);
 
 int main(int argc, const char * argv[]) {
     @autoreleasepool {

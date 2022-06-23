@@ -28,5 +28,6 @@
 #import "CDSearchPathState.h"
 
 @interface classdump : NSObject
-+ (NSInteger)performClassDumpOnFile:(NSString *)file toFolder:(NSString *)outputPath;
+@property (readwrite, assign) BOOL verbose;
+- (NSInteger)performClassDumpOnFile:(NSString *)file toFolder:(NSString *)outputPath;
 @end
