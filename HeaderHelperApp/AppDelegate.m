@@ -29,9 +29,10 @@
     if (resp == NSModalResponseOK){
         
         NSString *file = [op filename];
-        HelperClass *hc = [HelperClass new];
+        //HelperClass *hc = [HelperClass new];
         
-        [hc processRootFolder:file];
+        //[[HelperClass sharedInstance] doStuffWithFile:file];
+        [[HelperClass sharedInstance] processRootFolder:file];
         //NSString *outputPath = [NSHomeDirectory() stringByAppendingPathComponent:@"Headers"];
         //[hc classDumpBundlesInFolder:file toPath:outputPath];
         //[hc doStuffWithFile:file];

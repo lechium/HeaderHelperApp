@@ -29,5 +29,6 @@
 
 @interface classdump : NSObject
 @property (readwrite, assign) BOOL verbose;
++ (id)sharedInstance;
 - (NSInteger)performClassDumpOnFile:(NSString *)file toFolder:(NSString *)outputPath;
 @end

@@ -28,6 +28,18 @@
 
 @implementation HelperClass
 
++ (id)sharedInstance {
+    
+    static dispatch_once_t onceToken;
+    static HelperClass *shared;
+    if (!shared){
+        dispatch_once(&onceToken, ^{
+            shared = [HelperClass new];
+        });
+    }
+    return shared;
+}
+
 - (void)getFileEntitlementsOnMainThread:(NSString *)inputFile withCompletion:(void(^)(NSString *entitlements))block {
     //DLog(@"checking file: %@", inputFile);
     if (![[NSFileManager defaultManager] fileExistsAtPath:inputFile]){
@@ -155,6 +167,8 @@
             }];
         }];
         
+        [self processDaemons:paths inRoot:rootFolder toFolder:outputFolder];
+        
         //done with daemons et al
         
         NSArray *exportPaths = @[@"Applications", @"System/Library/Frameworks", @"System/Library/PrivateFrameworks", @"System/Library/HIDPlugins/ServicePlugins", @"System/Library/TVSystemMenuModules"];
@@ -164,6 +178,27 @@
         //NSString *outputFile = [NSHomeDirectory() stringByAppendingPathComponent:@"Desktop/daemons.plist"];
         //[rawDaemonDetails writeToFile:outputFile atomically:true];
     });
+}
+
+- (void)processDaemons:(NSArray *)daemons inRoot:(NSString *)rootFolder toFolder:(NSString *)rootOutputFolder {
+    NSString *outputFolder = [rootOutputFolder stringByAppendingPathComponent:@"usr/libexec"];
+    NSFileManager *man = [NSFileManager defaultManager];
+    [man createDirectoryAtPath:outputFolder withIntermediateDirectories:true attributes:nil error:nil];
+    [daemons enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        NSString *fullPath = [rootFolder stringByAppendingPathComponent:obj];
+        NSString *headerPath = [outputFolder stringByAppendingPathComponent:[[obj lastPathComponent] stringByDeletingPathExtension]];
+        //DLog(@"make header path: %@", headerPath);
+        [man createDirectoryAtPath:headerPath withIntermediateDirectories:true attributes:nil error:nil];
+        DLog(@"[%lu of %lu] Dumping binary: %@ ...", idx, daemons.count ,[obj lastPathComponent]);
+        classdump *cd = [classdump new];
+        [cd performClassDumpOnFile:fullPath toFolder:headerPath];
+        NSArray *contents = [man contentsOfDirectoryAtPath:headerPath error:nil];
+        
+        if (contents.count < 2) {
+            //DLog(@"output folder count after class dump: %lu is less than 2, torch the folder!", contents.count);
+            [man removeItemAtPath:headerPath error:nil];
+        }
+    }];
 }
 
 - (void)doStuffWithFile:(NSString *)file {
@@ -185,14 +220,14 @@
         //NSString *lastPath = [folderPath lastPathComponent];
         //NSString *outputPath = [folderPath stringByAppendingPathComponent:lastPath];
         [man createDirectoryAtPath:outputPath withIntermediateDirectories:TRUE attributes:nil error:nil];
-        DLog(@"dir contents: %@", dirContents);
+        //DLog(@"dir contents: %@", dirContents);
         [dirContents enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
             
             NSString *fullPath = [folderPath stringByAppendingPathComponent:obj];
             NSString *headerPath = [outputPath stringByAppendingPathComponent:[obj stringByDeletingPathExtension]];
             if ([man fileExistsAtPath:headerPath]) {
                 NSArray *contents = [man contentsOfDirectoryAtPath:headerPath error:nil];
-                DLog(@"%@ already exists, should we skip it? content count: %lu", headerPath, contents.count);
+                //DLog(@"%@ already exists, should we skip it? content count: %lu", headerPath, contents.count);
             } else {
                 [man createDirectoryAtPath:headerPath withIntermediateDirectories:TRUE attributes:nil error:nil];
                 NSString *plistPath = [fullPath stringByAppendingPathComponent:@"Info.plist"];

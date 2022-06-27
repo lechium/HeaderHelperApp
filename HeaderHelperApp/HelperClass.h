@@ -10,7 +10,7 @@
 #define DLog(format, ...) CFShow((__bridge CFStringRef)[NSString stringWithFormat:format, ## __VA_ARGS__]);
 
 @interface HelperClass : NSObject
-
++ (id)sharedInstance;
 - (void)classDumpBundlesInFolder:(NSString *)folderPath toPath:(NSString *)outputPath;
 - (void)doStuffWithFile:(NSString *)file;
 - (void)processRootFolder:(NSString *)rootFolder;
