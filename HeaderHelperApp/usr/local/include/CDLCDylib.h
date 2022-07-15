@@ -14,5 +14,5 @@
 
 @property (nonatomic, readonly) NSString *formattedCurrentVersion;
 @property (nonatomic, readonly) NSString *formattedCompatibilityVersion;
-
+- (NSString *)path;
 @end

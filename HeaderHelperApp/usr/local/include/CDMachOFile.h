@@ -14,7 +14,7 @@ typedef enum : NSUInteger {
 } CDByteOrder;
 
 @class CDLCSegment;
-@class CDLCBuildVersion, CDLCDyldInfo, CDLCDylib, CDMachOFile, CDLCSymbolTable, CDLCDynamicSymbolTable, CDLCVersionMinimum, CDLCSourceVersion;
+@class CDLCBuildVersion, CDLCDyldInfo, CDLCDylib, CDMachOFile, CDLCSymbolTable, CDLCDynamicSymbolTable, CDLCVersionMinimum, CDLCSourceVersion, CDLCChainedFixups, CDLCExportTRIEData;
 
 @interface CDMachOFile : CDFile
 
@@ -40,6 +40,8 @@ typedef enum : NSUInteger {
 @property (strong) CDLCSymbolTable *symbolTable;
 @property (strong) CDLCDynamicSymbolTable *dynamicSymbolTable;
 @property (strong) CDLCDyldInfo *dyldInfo;
+@property (strong) CDLCExportTRIEData *exportsTrie;
+@property (strong) CDLCChainedFixups *chainedFixups;
 @property (strong) CDLCDylib *dylibIdentifier;
 @property (strong) CDLCVersionMinimum *minVersionMacOSX;
 @property (strong) CDLCVersionMinimum *minVersionIOS;
@@ -90,4 +92,6 @@ typedef enum : NSUInteger {
 @property (nonatomic, readonly) BOOL hasObjectiveC2Data;
 @property (nonatomic, readonly) Class processorClass;
 
+- (uint64_t)peekPtrAtOffset:(NSUInteger)offset ptrSize:(NSUInteger)ptr;
+- (uint64_t)preferredLoadAddress;
 @end

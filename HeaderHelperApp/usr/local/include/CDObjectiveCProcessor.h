@@ -14,6 +14,7 @@
 
 @property (readonly) CDMachOFile *machOFile;
 @property (nonatomic, readonly) BOOL hasObjectiveCData;
+@property (readwrite, assign) BOOL shallow;
 
 @property (nonatomic, readonly) CDSection *objcImageInfoSection;
 @property (nonatomic, readonly) NSString *garbageCollectionStatus;
@@ -26,6 +27,7 @@
 
 - (void)addCategory:(CDOCCategory *)category;
 
+- (void)processStoppingEarly:(BOOL)stopEarly;
 - (void)process;
 - (void)loadProtocols;
 - (void)loadClasses;
