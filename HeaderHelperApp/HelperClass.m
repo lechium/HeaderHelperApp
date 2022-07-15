@@ -150,24 +150,26 @@
         if (![man fileExistsAtPath:outputFolder]){
             [man createDirectoryAtPath:outputFolder withIntermediateDirectories:true attributes:nil error:nil];
         }
-        NSArray *paths = [self rawDaemonPathsForPath:rootFolder];
-        DLog(@"%@", paths);
-        NSString *entOutput = [outputFolder stringByAppendingPathComponent:@"Entitlements"];
-        if (![man fileExistsAtPath:entOutput]){
-            [man createDirectoryAtPath:entOutput withIntermediateDirectories:true attributes:nil error:nil];
-        }
-        [paths enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-            NSString *fullFilePath = [rootFolder stringByAppendingPathComponent:obj];
-            [self getFileEntitlementsOnMainThread:fullFilePath withCompletion:^(NSString *entitlements) {
-                if (entitlements) {
-                    NSString *fileName = [[entOutput stringByAppendingPathComponent:[obj lastPathComponent]] stringByAppendingPathExtension:@"plist"];
-                    //DLog(@"valid ents for %@ writing to file: %@", [obj lastPathComponent], fileName);
-                    [entitlements writeToFile:fileName atomically:true encoding:NSUTF8StringEncoding error:nil];
-                }
+        if (!self.skipDaemons){
+            NSArray *paths = [self rawDaemonPathsForPath:rootFolder];
+            DLog(@"%@", paths);
+            NSString *entOutput = [outputFolder stringByAppendingPathComponent:@"Entitlements"];
+            if (![man fileExistsAtPath:entOutput]){
+                [man createDirectoryAtPath:entOutput withIntermediateDirectories:true attributes:nil error:nil];
+            }
+            [paths enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+                NSString *fullFilePath = [rootFolder stringByAppendingPathComponent:obj];
+                [self getFileEntitlementsOnMainThread:fullFilePath withCompletion:^(NSString *entitlements) {
+                    if (entitlements) {
+                        NSString *fileName = [[entOutput stringByAppendingPathComponent:[obj lastPathComponent]] stringByAppendingPathExtension:@"plist"];
+                        //DLog(@"valid ents for %@ writing to file: %@", [obj lastPathComponent], fileName);
+                        [entitlements writeToFile:fileName atomically:true encoding:NSUTF8StringEncoding error:nil];
+                    }
+                }];
             }];
-        }];
-        
-        [self processDaemons:paths inRoot:rootFolder toFolder:outputFolder];
+            
+            [self processDaemons:paths inRoot:rootFolder toFolder:outputFolder];
+        }
         
         //done with daemons et al
         
@@ -212,6 +214,7 @@
 - (void)classDumpBundlesInFolder:(NSString *)folderPath toPath:(NSString *)outputPath {
     
     if (![[NSFileManager defaultManager] fileExistsAtPath:folderPath]){
+        DLog(@"file exists at path: %@ bail!", folderPath);
         return;
     }
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{

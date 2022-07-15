@@ -32,6 +32,7 @@
         //HelperClass *hc = [HelperClass new];
         
         //[[HelperClass sharedInstance] doStuffWithFile:file];
+        [[HelperClass sharedInstance] setSkipDaemons:true];
         [[HelperClass sharedInstance] processRootFolder:file];
         //NSString *outputPath = [NSHomeDirectory() stringByAppendingPathComponent:@"Headers"];
         //[hc classDumpBundlesInFolder:file toPath:outputPath];
