@@ -21,6 +21,10 @@
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
     // Insert code here to initialize your application
     
+    NSArray *xcArray = [[HelperClass sharedInstance] simRuntimes];
+    DLog(@"xcArray: %@", xcArray);
+    return;
+    
     NSOpenPanel *op = [NSOpenPanel new];
     [op setCanChooseDirectories:true];
     [op setCanChooseFiles:false];

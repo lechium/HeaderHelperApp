@@ -17,6 +17,8 @@
 - (void)processRootFolder:(NSString *)rootFolder;
 - (void)getFileEntitlements:(NSString *)inputFile withCompletion:(void(^)(NSString *entitlements))block;
 - (void)getFileEntitlementsOnMainThread:(NSString *)inputFile withCompletion:(void(^)(NSString *entitlements))block;
+- (NSArray *)findXcodes;
+- (NSArray *)simRuntimes;
 @end
 
 
