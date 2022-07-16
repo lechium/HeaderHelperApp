@@ -225,41 +225,47 @@
     
 }
 
+- (NSDictionary *)simRuntimesForXcode:(NSString *)xcode {
+    NSFileManager *man = [NSFileManager defaultManager];
+    NSMutableDictionary *currentXC = [NSMutableDictionary new];
+    currentXC[@"path"] = xcode;
+    NSMutableArray *currentPlatforms = [NSMutableArray new];
+    NSString *platformPath = [xcode stringByAppendingPathComponent:@"Contents/Developer/Platforms"];
+    NSArray *platforms = [man contentsOfDirectoryAtPath:platformPath error:nil];
+    //DLog(@"checking platform path: %@ contents: %@", platformPath, platforms);
+    [platforms enumerateObjectsUsingBlock:^(id  _Nonnull platform, NSUInteger pi, BOOL * _Nonnull stop) {
+       //Library/Developer/CoreSimulator/Profiles/Runtimes/
+        NSString *platformed = [platformPath stringByAppendingPathComponent:platform];
+        NSString *runtimesPath = [platformed stringByAppendingPathComponent:@"Library/Developer/CoreSimulator/Profiles/Runtimes"];
+        if ([man fileExistsAtPath:runtimesPath]) {
+            NSString *relativeRuntime = [[man contentsOfDirectoryAtPath:runtimesPath error:nil] firstObject];
+            //NSArray *contents = [man contentsOfDirectoryAtPath:runtimesPath error:nil];
+            runtimesPath = [runtimesPath stringByAppendingPathComponent:relativeRuntime];
+            runtimesPath = [runtimesPath stringByAppendingPathComponent:@"Contents/Resources/RuntimeRoot"];
+            NSString *systemVersionFile = [runtimesPath stringByAppendingPathComponent:@"System/Library/CoreServices/SystemVersion.plist"];
+            NSDictionary *sysVers = [NSDictionary dictionaryWithContentsOfFile:systemVersionFile];
+            NSString *productName = sysVers[@"ProductName"];
+            NSString *productVersion = sysVers[@"ProductVersion"];
+            NSString *productBuildVersion = sysVers[@"ProductBuildVersion"];
+            NSString *versionString = [NSString stringWithFormat:@"%@ %@ (%@)", productName, productVersion, productBuildVersion];
+            //DLog(@"found a runtime: %@ at %@", versionString, runtimesPath);
+            NSDictionary *platformDict = @{@"name": versionString, @"path": runtimesPath};
+            [currentPlatforms addObject:platformDict];
+        }
+    }];
+    currentXC[@"platforms"] = currentPlatforms;
+    return currentXC;
+}
+
 - (NSArray *)simRuntimes {
     NSArray <NSString *> *xcodes = [self findXcodes];
     __block NSMutableArray *runtimes = [NSMutableArray new];
-    NSFileManager *man = [NSFileManager defaultManager];
     [xcodes enumerateObjectsUsingBlock:^(NSString * _Nonnull xcode, NSUInteger xi, BOOL * _Nonnull stop) {
-        NSMutableDictionary *currentXC = [NSMutableDictionary new];
-        currentXC[@"path"] = xcode;
-        NSMutableArray *currentPlatforms = [NSMutableArray new];
-        NSString *platformPath = [xcode stringByAppendingPathComponent:@"Contents/Developer/Platforms"];
-        NSArray *platforms = [man contentsOfDirectoryAtPath:platformPath error:nil];
-        //DLog(@"checking platform path: %@ contents: %@", platformPath, platforms);
-        [platforms enumerateObjectsUsingBlock:^(id  _Nonnull platform, NSUInteger pi, BOOL * _Nonnull stop) {
-           //Library/Developer/CoreSimulator/Profiles/Runtimes/
-            NSString *platformed = [platformPath stringByAppendingPathComponent:platform];
-            NSString *runtimesPath = [platformed stringByAppendingPathComponent:@"Library/Developer/CoreSimulator/Profiles/Runtimes"];
-            if ([man fileExistsAtPath:runtimesPath]) {
-                NSString *relativeRuntime = [[man contentsOfDirectoryAtPath:runtimesPath error:nil] firstObject];
-                //NSArray *contents = [man contentsOfDirectoryAtPath:runtimesPath error:nil];
-                runtimesPath = [runtimesPath stringByAppendingPathComponent:relativeRuntime];
-                runtimesPath = [runtimesPath stringByAppendingPathComponent:@"Contents/Resources/RuntimeRoot"];
-                NSString *systemVersionFile = [runtimesPath stringByAppendingPathComponent:@"System/Library/CoreServices/SystemVersion.plist"];
-                NSDictionary *sysVers = [NSDictionary dictionaryWithContentsOfFile:systemVersionFile];
-                NSString *productName = sysVers[@"ProductName"];
-                NSString *productVersion = sysVers[@"ProductVersion"];
-                NSString *productBuildVersion = sysVers[@"ProductBuildVersion"];
-                NSString *versionString = [NSString stringWithFormat:@"%@ %@ (%@)", productName, productVersion, productBuildVersion];
-                //DLog(@"found a runtime: %@ at %@", versionString, runtimesPath);
-                NSDictionary *platformDict = @{@"name": versionString, @"path": runtimesPath};
-                [currentPlatforms addObject:platformDict];
-            }
-        }];
-        currentXC[@"platforms"] = currentPlatforms;
-        [runtimes addObject:currentXC];
+        NSDictionary *simR = [self simRuntimesForXcode:xcode];
+        if (simR){
+            [runtimes addObject:simR];
+        }
     }];
-    
     return runtimes;
 }
 

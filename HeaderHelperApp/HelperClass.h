@@ -19,6 +19,7 @@
 - (void)getFileEntitlementsOnMainThread:(NSString *)inputFile withCompletion:(void(^)(NSString *entitlements))block;
 - (NSArray *)findXcodes;
 - (NSArray *)simRuntimes;
+- (NSDictionary *)simRuntimesForXcode:(NSString *)xcode;
 @end
 
 
