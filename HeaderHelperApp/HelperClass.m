@@ -175,11 +175,20 @@
             }
             [paths enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
                 NSString *fullFilePath = [rootFolder stringByAppendingPathComponent:obj];
+                /*
                 [self getFileEntitlementsOnMainThread:fullFilePath withCompletion:^(NSString *entitlements) {
                     if (entitlements) {
                         NSString *fileName = [[entOutput stringByAppendingPathComponent:[obj lastPathComponent]] stringByAppendingPathExtension:@"plist"];
                         //DLog(@"valid ents for %@ writing to file: %@", [obj lastPathComponent], fileName);
                         [entitlements writeToFile:fileName atomically:true encoding:NSUTF8StringEncoding error:nil];
+                    }
+                }];*/
+                [self newGetFileEntitlementsOnMainThread:fullFilePath withCompletion:^(NSDictionary *entitlements) {
+                    if (entitlements) {
+                        NSString *fileName = [[entOutput stringByAppendingPathComponent:[obj lastPathComponent]] stringByAppendingPathExtension:@"plist"];
+                        //DLog(@"valid ents for %@ writing to file: %@", [obj lastPathComponent], fileName);
+                        [entitlements writeToFile:fileName atomically:true];
+                        //[entitlements writeToFile:fileName atomically:true encoding:NSUTF8StringEncoding error:nil];
                     }
                 }];
             }];

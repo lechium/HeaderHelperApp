@@ -104,11 +104,6 @@
             [self showMultiplePlatformsFoundAlert:runtimes[@"platforms"]];
             return;
         }
-        
-        [[HelperClass sharedInstance] newGetFileEntitlementsOnMainThread:file withCompletion:^(NSDictionary *entitlements) {
-            DLog(@"%@", entitlements);
-        }];
-        return;
         //[[HelperClass sharedInstance] doStuffWithFile:file];
         [[HelperClass sharedInstance] setSkipDaemons:true];
         [[HelperClass sharedInstance] processRootFolder:file];
