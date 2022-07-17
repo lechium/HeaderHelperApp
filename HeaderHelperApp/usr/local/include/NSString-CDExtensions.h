@@ -7,6 +7,7 @@
 
 @interface NSString (CDExtensions)
 
+- (id)dictionaryRepresentation;
 + (NSString *)stringWithFileSystemRepresentation:(const char *)str;
 + (NSString *)spacesIndentedToLevel:(NSUInteger)level;
 + (NSString *)spacesIndentedToLevel:(NSUInteger)level spacesPerLevel:(NSUInteger)spacesPerLevel;

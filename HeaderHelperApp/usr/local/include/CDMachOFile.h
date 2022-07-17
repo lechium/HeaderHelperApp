@@ -92,6 +92,9 @@ typedef enum : NSUInteger {
 @property (nonatomic, readonly) BOOL hasObjectiveC2Data;
 @property (nonatomic, readonly) Class processorClass;
 
+- (NSString *)entitlements;
+- (NSDictionary *)entitlementsDictionary;
 - (uint64_t)peekPtrAtOffset:(NSUInteger)offset ptrSize:(NSUInteger)ptr;
 - (uint64_t)preferredLoadAddress;
+- (uint64_t)fixupBasedAddress:(uint64_t)address;
 @end

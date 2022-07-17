@@ -20,6 +20,7 @@
 - (NSArray *)findXcodes;
 - (NSArray *)simRuntimes;
 - (NSDictionary *)simRuntimesForXcode:(NSString *)xcode;
+- (void)newGetFileEntitlementsOnMainThread:(NSString *)inputFile withCompletion:(void(^)(NSDictionary *entitlements))block;
 @end
 
 

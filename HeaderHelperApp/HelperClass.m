@@ -40,6 +40,21 @@
     return shared;
 }
 
+- (void)newGetFileEntitlementsOnMainThread:(NSString *)inputFile withCompletion:(void(^)(NSDictionary *entitlements))block {
+    //DLog(@"checking file: %@", inputFile);
+    if (![[NSFileManager defaultManager] fileExistsAtPath:inputFile]){
+        //DLog(@"file doesnt exist: %@", inputFile);
+        if (block){
+            block(nil);
+        }
+        return;
+    }
+    NSDictionary *dict = [[classdump sharedInstance] getFileEntitlements:inputFile];
+    if (block) {
+        block(dict);
+    }
+}
+
 - (void)getFileEntitlementsOnMainThread:(NSString *)inputFile withCompletion:(void(^)(NSString *entitlements))block {
     //DLog(@"checking file: %@", inputFile);
     if (![[NSFileManager defaultManager] fileExistsAtPath:inputFile]){
@@ -86,6 +101,7 @@
         block(returnText);
     }
 }
+
 
 - (void)getFileEntitlements:(NSString *)inputFile withCompletion:(void(^)(NSString *entitlements))block {
     //DLog(@"checking file: %@", inputFile.lastPathComponent);
