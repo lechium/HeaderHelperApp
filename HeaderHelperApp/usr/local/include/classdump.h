@@ -30,6 +30,7 @@
 @interface classdump : NSObject
 @property (readwrite, assign) BOOL verbose;
 + (id)sharedInstance;
+- (NSInteger)performClassDumpOnFile:(NSString *)file withEntitlements:(BOOL)dumpEnt toFolder:(NSString *)outputPath;
 - (NSInteger)performClassDumpOnFile:(NSString *)file toFolder:(NSString *)outputPath;
 - (CDClassDump *)classDumpInstanceFromFile:(NSString *)file;
 - (NSDictionary *)getFileEntitlements:(NSString *)file;

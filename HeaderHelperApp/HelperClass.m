@@ -8,7 +8,7 @@
 
 #import "HelperClass.h"
 #import "classdump.h"
-
+#import "NSString-CDExtensions.h"
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 @implementation NSString (extra)
@@ -22,6 +22,13 @@
                                                             format:&format
                                                   errorDescription:&error];
     return theDict;
+}
+
+@end
+
+@interface HelperClass() {
+    NSMetadataQuery *query_;
+    NSMutableArray *results;
 }
 
 @end
@@ -40,7 +47,114 @@
     return shared;
 }
 
-- (void)newGetFileEntitlementsOnMainThread:(NSString *)inputFile withCompletion:(void(^)(NSDictionary *entitlements))block {
+- (void)xcodeSearchWithCompletion:(void(^)(NSArray <NSDictionary *>*results))block {
+    _xcodeResultsBlock = block;
+    results = [NSMutableArray new];
+    query_ = [[NSMetadataQuery alloc] init];
+    NSPredicate *predicate
+    = [NSPredicate predicateWithFormat:kApplicationSourcePredicateString];
+    NSArray *scope = [NSArray arrayWithObject:NSMetadataQueryLocalComputerScope];
+    [query_ setSearchScopes:scope];
+    NSSortDescriptor *desc
+    = [[NSSortDescriptor alloc] initWithKey:(id)kMDItemLastUsedDate
+                                  ascending:NO];
+    [query_ setSortDescriptors:[NSArray arrayWithObject:desc]];
+    [query_ setPredicate:predicate];
+    [query_ setNotificationBatchingInterval:10];
+    
+    NSNotificationCenter *nc = [NSNotificationCenter defaultCenter];
+    [nc addObserver:self
+           selector:@selector(queryNotification:)
+               name:nil
+             object:query_];
+    
+    [query_ startQuery];
+}
+
+- (BOOL)bundleShouldBeSuppressed:(NSString *)bundleID {
+    return ![bundleID isEqualToString:@"com.apple.dt.Xcode"];
+}
+
+- (void)parseResultsOperation:(NSMetadataQuery *)query {
+    NSArray *mdAttributeNames = [NSArray arrayWithObjects:
+                                 (NSString *)kMDItemDisplayName,
+                                 (NSString *)kMDItemPath,
+                                 (NSString *)kMDItemContentCreationDate,
+                                 (NSString *)kMDItemCFBundleIdentifier,
+                                 (NSString *)kMDItemVersion,
+                                 nil];
+    NSUInteger resultCount = [query resultCount];
+    for (NSUInteger i = 0; i < resultCount; ++i) {
+        NSMetadataItem *result = [query resultAtIndex:i];
+        NSDictionary *mdAttributes = [result valuesForAttributes:mdAttributeNames];
+        NSString *path = [mdAttributes objectForKey:(NSString*)kMDItemPath];
+        NSString *bundleID = [mdAttributes objectForKey:(NSString *)kMDItemCFBundleIdentifier];
+        NSString *version = [mdAttributes objectForKey:(NSString *)kMDItemVersion];
+        if (bundleID) {
+            if ([self bundleShouldBeSuppressed:bundleID])
+                continue;
+        } else {
+            continue; //if it doesn't have a bundleID were not interested
+        }
+        
+        NSString *name = [mdAttributes objectForKey:(NSString*)kMDItemDisplayName];
+        NSArray *components = [path pathComponents];
+        
+        NSString *fileSystemName = [components objectAtIndex:[components count] - 1];
+        if (!name) {
+            name = fileSystemName;
+        }
+        
+        NSMutableDictionary *attributes = [NSMutableDictionary new];
+        
+        
+        if ([[path pathExtension] caseInsensitiveCompare:@"app"] == NSOrderedSame) {
+            name = [name stringByDeletingPathExtension];
+        }
+        
+        // set last used date
+        NSDate *date = [mdAttributes objectForKey:(NSString*)kMDItemContentCreationDate];
+        if (!date) {
+            date = [NSDate distantPast];
+        }
+        
+        [attributes setObject:date forKey:@"createdDate"];
+        
+        if (version){
+            attributes[@"version"] = version;
+        }
+        attributes[@"path"] = path;
+        attributes[@"name"] = name;
+        attributes[@"fsName"] = fileSystemName;
+        NSDictionary *runtimes = [self simRuntimesForXcode:path];
+        if (runtimes){
+            attributes[@"runtimes"] = runtimes[@"platforms"];
+        }
+        [results addObject:attributes];
+        
+    }
+    if(_xcodeResultsBlock) {
+        _xcodeResultsBlock(results);
+    }
+    //DLog(@"results: %@", results);
+    //[query enableUpdates];
+}
+
+- (void)queryNotification:(NSNotification *)notification {
+  NSString *name = [notification name];
+  if ([name isEqualToString:NSMetadataQueryDidFinishGatheringNotification]
+      || [name isEqualToString:NSMetadataQueryDidUpdateNotification] ) {
+    NSMetadataQuery *query = [notification object];
+    [query_ disableUpdates];
+    NSOperation *op
+      = [[NSInvocationOperation alloc] initWithTarget:self
+                                             selector:@selector(parseResultsOperation:)
+                                               object:query];
+    [[NSOperationQueue mainQueue] addOperation:op];
+  }
+}
+
+- (void)getFileEntitlementsOnMainThread:(NSString *)inputFile withCompletion:(void(^)(NSDictionary *entitlements))block {
     //DLog(@"checking file: %@", inputFile);
     if (![[NSFileManager defaultManager] fileExistsAtPath:inputFile]){
         //DLog(@"file doesnt exist: %@", inputFile);
@@ -55,52 +169,6 @@
     }
 }
 
-- (void)getFileEntitlementsOnMainThread:(NSString *)inputFile withCompletion:(void(^)(NSString *entitlements))block {
-    //DLog(@"checking file: %@", inputFile);
-    if (![[NSFileManager defaultManager] fileExistsAtPath:inputFile]){
-        //DLog(@"file doesnt exist: %@", inputFile);
-        if (block){
-            block(nil);
-        }
-        return;
-    }
-    NSString *fileContents = [NSString stringWithContentsOfFile:inputFile encoding:NSASCIIStringEncoding error:nil];
-    NSUInteger fileLength = [fileContents length];
-    if (fileLength == 0) {
-        fileContents = [NSString stringWithContentsOfFile:inputFile]; //if ascii doesnt work, have to use the deprecated (thankfully not obsolete!) method
-    }
-    fileLength = [fileContents length];
-    if (fileLength == 0){
-        if (block){
-            DLog(@"file length is 0, failed: %@", inputFile);
-            block(nil);
-            return;
-        }
-    }
-    NSScanner *theScanner;
-    NSString *text = nil;
-    NSString *returnText = nil;
-    theScanner = [NSScanner scannerWithString:fileContents];
-    while ([theScanner isAtEnd] == NO) {
-        [theScanner scanUpToString:@"<?xml" intoString:NULL];
-        [theScanner scanUpToString:@"</plist>" intoString:&text];
-        text = [text stringByAppendingFormat:@"</plist>"];
-        //DLog(@"text: %@", [text dictionaryRepresentation]);
-        NSDictionary *dict = [text dictionaryRepresentation];
-        if (dict && [dict allKeys].count > 0) {
-            if (![[dict allKeys] containsObject:@"CFBundleIdentifier"] && ![[dict allKeys] containsObject:@"cdhashes"]){
-                //DLog(@"got im: %@", [[inputFile lastPathComponent] stringByDeletingPathExtension]);
-                returnText = text;
-                break;
-            }
-        } else {
-            DLog(@"no entitlements found: %@", inputFile);
-        }
-    }
-    if (block){
-        block(returnText);
-    }
-}
 
 
 - (void)getFileEntitlements:(NSString *)inputFile withCompletion:(void(^)(NSString *entitlements))block {
@@ -113,46 +181,15 @@
             }
             return;
         }
-        NSString *fileContents = [NSString stringWithContentsOfFile:inputFile encoding:NSASCIIStringEncoding error:nil];
-        NSUInteger fileLength = [fileContents length];
-        if (fileLength == 0) {
-            fileContents = [NSString stringWithContentsOfFile:inputFile]; //if ascii doesnt work, have to use the deprecated (thankfully not obsolete!) method
-        }
-        fileLength = [fileContents length];
-        if (fileLength == 0){
-            if (block){
-                block(nil);
-                return;
-            }
-        }
-        NSScanner *theScanner;
-        NSString *text = nil;
-        NSString *returnText = nil;
-        theScanner = [NSScanner scannerWithString:fileContents];
-        while ([theScanner isAtEnd] == NO) {
-            [theScanner scanUpToString:@"<?xml" intoString:NULL];
-            [theScanner scanUpToString:@"</plist>" intoString:&text];
-            text = [text stringByAppendingFormat:@"</plist>"];
-            //DLog(@"text: %@", [text dictionaryRepresentation]);
-            NSDictionary *dict = [text dictionaryRepresentation];
-            if (dict && [dict allKeys].count > 0) {
-                if (![[dict allKeys] containsObject:@"CFBundleIdentifier"] && ![[dict allKeys] containsObject:@"cdhashes"]){
-                    //DLog(@"got im: %@", [[inputFile lastPathComponent] stringByDeletingPathExtension]);
-                    returnText = text;
-                    break;
-                }
-            } else {
-                DLog(@"no entitlements found: %@", inputFile);
-            }
-        }
-        if (block){
-            block(returnText);
+        NSDictionary *dict = [[classdump sharedInstance] getFileEntitlements:inputFile];
+        if (block) {
+            block([dict stringRepresentation]);
         }
     });
 }
 
 
-- (void)processRootFolder:(NSString *)rootFolder {
+- (void)processRootFolder:(NSString *)rootFolder withCompletion:(void(^)(BOOL success))block {
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
         
         NSString *systemVersionFile = [rootFolder stringByAppendingPathComponent:@"System/Library/CoreServices/SystemVersion.plist"];
@@ -175,15 +212,7 @@
             }
             [paths enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
                 NSString *fullFilePath = [rootFolder stringByAppendingPathComponent:obj];
-                /*
-                [self getFileEntitlementsOnMainThread:fullFilePath withCompletion:^(NSString *entitlements) {
-                    if (entitlements) {
-                        NSString *fileName = [[entOutput stringByAppendingPathComponent:[obj lastPathComponent]] stringByAppendingPathExtension:@"plist"];
-                        //DLog(@"valid ents for %@ writing to file: %@", [obj lastPathComponent], fileName);
-                        [entitlements writeToFile:fileName atomically:true encoding:NSUTF8StringEncoding error:nil];
-                    }
-                }];*/
-                [self newGetFileEntitlementsOnMainThread:fullFilePath withCompletion:^(NSDictionary *entitlements) {
+                [self getFileEntitlementsOnMainThread:fullFilePath withCompletion:^(NSDictionary *entitlements) {
                     if (entitlements) {
                         NSString *fileName = [[entOutput stringByAppendingPathComponent:[obj lastPathComponent]] stringByAppendingPathExtension:@"plist"];
                         //DLog(@"valid ents for %@ writing to file: %@", [obj lastPathComponent], fileName);
@@ -197,10 +226,18 @@
         }
         
         //done with daemons et al
-        
+        __block NSInteger completedFolders = 0;
         NSArray *exportPaths = @[@"Applications", @"System/Library/Frameworks", @"System/Library/PrivateFrameworks", @"System/Library/HIDPlugins/ServicePlugins", @"System/Library/TVSystemMenuModules"];
         [exportPaths enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-            [self classDumpBundlesInFolder:[rootFolder stringByAppendingPathComponent:obj] toPath:[outputFolder stringByAppendingPathComponent:obj]];
+            [self classDumpBundlesInFolder:[rootFolder stringByAppendingPathComponent:obj] toPath:[outputFolder stringByAppendingPathComponent:obj] completion:^{
+                completedFolders++;
+                DLog(@"completed folders: %lu count: %lu", completedFolders, exportPaths.count);
+                if (completedFolders == exportPaths.count){
+                    if (block) {
+                        block(TRUE);
+                    }
+                }
+            }];
         }];
         //NSString *outputFile = [NSHomeDirectory() stringByAppendingPathComponent:@"Desktop/daemons.plist"];
         //[rawDaemonDetails writeToFile:outputFile atomically:true];
@@ -324,7 +361,7 @@
     [cd performClassDumpOnFile:file toFolder:outputFolder];
 }
 
-- (void)classDumpBundlesInFolder:(NSString *)folderPath toPath:(NSString *)outputPath {
+- (void)classDumpBundlesInFolder:(NSString *)folderPath toPath:(NSString *)outputPath completion:(void(^)(void))completed {
     
     if (![[NSFileManager defaultManager] fileExistsAtPath:folderPath]){
         DLog(@"file exists at path: %@ bail!", folderPath);

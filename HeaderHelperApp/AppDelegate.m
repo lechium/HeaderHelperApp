@@ -47,7 +47,9 @@
         switch (modalReturn) {
                 
             case NSAlertDefaultReturn:
-                [[HelperClass sharedInstance] processRootFolder:platform[@"path"]];
+                [[HelperClass sharedInstance] processRootFolder:platform[@"path"] withCompletion:^(BOOL success) {
+                    
+                }];
                 //[self processPlatforms:platforms mode:0];
                 //[[NSWorkspace sharedWorkspace] openFile:[KBProfileHelper mobileDeviceLog]];
                 break;
@@ -72,9 +74,30 @@
     } else if (mode == 1) { //process em all!
         [platforms enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
             //need to make sure we only do one at a time...
-            [[HelperClass sharedInstance] processRootFolder:obj[@"path"]];
+            [[HelperClass sharedInstance] processRootFolder:obj[@"path"] withCompletion:^(BOOL success) {
+                
+            }];
         }];
     }
+    
+}
+
+- (IBAction)doIt:(NSButton *)sender {
+    
+    id obj = [[self.runtimeController selectedObjects] firstObject];
+    DLog(@"obj: %@", obj);
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self.progressBar startAnimation:nil];
+        self.progressLabel.stringValue = [NSString stringWithFormat:@"Processing %@...", obj[@"name"]];
+        sender.enabled = false;
+    });
+    [[HelperClass sharedInstance] processRootFolder:obj[@"path"] withCompletion:^(BOOL success) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self.progressBar stopAnimation:nil];
+            self.progressLabel.stringValue = @"";
+            sender.enabled = true;
+        });
+    }];
     
 }
 
@@ -85,6 +108,11 @@
     //DLog(@"xcArray: %@", xcArray);
     //return;
     
+    [[HelperClass sharedInstance] xcodeSearchWithCompletion:^(NSArray<NSDictionary *> *results) {
+        DLog(@"results: %@", results);
+        self.xcodeArray = results;
+    }];
+    return;
     NSOpenPanel *op = [NSOpenPanel new];
     [op setCanChooseDirectories:true];
     [op setCanChooseFiles:true];
@@ -106,7 +134,9 @@
         }
         //[[HelperClass sharedInstance] doStuffWithFile:file];
         [[HelperClass sharedInstance] setSkipDaemons:true];
-        [[HelperClass sharedInstance] processRootFolder:file];
+        [[HelperClass sharedInstance] processRootFolder:file withCompletion:^(BOOL success) {
+            
+        }];
         //NSString *outputPath = [NSHomeDirectory() stringByAppendingPathComponent:@"Headers"];
         //[hc classDumpBundlesInFolder:file toPath:outputPath];
         //[hc doStuffWithFile:file];

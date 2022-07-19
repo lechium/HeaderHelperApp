@@ -10,6 +10,11 @@
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 
-
+@property (nonatomic, assign) IBOutlet NSProgressIndicator *progressBar;
+@property (nonatomic, assign) IBOutlet NSArrayController *xcodeController;
+@property (nonatomic, assign) IBOutlet NSArrayController *runtimeController;
+@property (nonatomic, assign) IBOutlet NSTextField *progressLabel;
+@property (nonatomic, strong) NSArray *xcodeArray;
+@property (nonatomic, strong) NSArray *runtimeArray;
 @end
 
