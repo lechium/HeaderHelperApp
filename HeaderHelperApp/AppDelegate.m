@@ -85,12 +85,15 @@
 - (IBAction)doIt:(NSButton *)sender {
     
     id obj = [[self.runtimeController selectedObjects] firstObject];
-    DLog(@"obj: %@", obj);
+    BOOL processDaemons = [[NSUserDefaults standardUserDefaults] boolForKey:@"processDaemons"];
+    DLog(@"obj: %@ pd: %d", obj, processDaemons);
     dispatch_async(dispatch_get_main_queue(), ^{
         [self.progressBar startAnimation:nil];
         self.progressLabel.stringValue = [NSString stringWithFormat:@"Processing %@...", obj[@"name"]];
         sender.enabled = false;
     });
+    
+    [[HelperClass sharedInstance] setSkipDaemons:!processDaemons];
     [[HelperClass sharedInstance] processRootFolder:obj[@"path"] withCompletion:^(BOOL success) {
         dispatch_async(dispatch_get_main_queue(), ^{
             [self.progressBar stopAnimation:nil];
@@ -151,6 +154,10 @@
     }
     
     
+}
+
++ (void)initialize {
+    [[NSUserDefaults standardUserDefaults] registerDefaults:@{@"processDaemons": [NSNumber numberWithBool:true]}];
 }
 
 
