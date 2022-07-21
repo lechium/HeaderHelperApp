@@ -101,6 +101,14 @@
     
 }
 
+- (IBAction)doubleAction:(id)sender {
+    
+    NSString  *path = self.runtimeController.selectedObjects.firstObject[@"path"];
+    DLog(@"double action: %@", path);
+    [[NSWorkspace sharedWorkspace] openFile:path];
+    
+}
+
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
     // Insert code here to initialize your application
     
@@ -109,7 +117,7 @@
     //return;
     
     [[HelperClass sharedInstance] xcodeSearchWithCompletion:^(NSArray<NSDictionary *> *results) {
-        DLog(@"results: %@", results);
+        //DLog(@"results: %@", results);
         self.xcodeArray = results;
     }];
     return;
