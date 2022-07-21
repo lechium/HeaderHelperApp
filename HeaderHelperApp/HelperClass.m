@@ -362,17 +362,17 @@
 }
 
 - (void)classDumpBundlesInFolder:(NSString *)folderPath toPath:(NSString *)outputPath completion:(void(^)(void))completed {
-    
+    NSFileManager *man = [NSFileManager defaultManager];
+    __block NSArray *dirContents = [man contentsOfDirectoryAtPath:folderPath error:nil];
     if (![[NSFileManager defaultManager] fileExistsAtPath:folderPath]){
-        DLog(@"file exists at path: %@ bail!", folderPath);
+        DLog(@"file exists at path: %@ check count: %lu", folderPath, dirContents.count);
         if (completed){
             completed();
         }
         return;
     }
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-        NSFileManager *man = [NSFileManager defaultManager];
-        NSArray *dirContents = [man contentsOfDirectoryAtPath:folderPath error:nil];
+        //NSArray *dirContents = [man contentsOfDirectoryAtPath:folderPath error:nil];
         //NSString *lastPath = [folderPath lastPathComponent];
         //NSString *outputPath = [folderPath stringByAppendingPathComponent:lastPath];
         [man createDirectoryAtPath:outputPath withIntermediateDirectories:TRUE attributes:nil error:nil];
@@ -381,9 +381,9 @@
             
             NSString *fullPath = [folderPath stringByAppendingPathComponent:obj];
             NSString *headerPath = [outputPath stringByAppendingPathComponent:[obj stringByDeletingPathExtension]];
-            if ([man fileExistsAtPath:headerPath]) {
-                NSArray *contents = [man contentsOfDirectoryAtPath:headerPath error:nil];
-                //DLog(@"%@ already exists, should we skip it? content count: %lu", headerPath, contents.count);
+            NSArray *contents = [man contentsOfDirectoryAtPath:headerPath error:nil]; //i know i know...
+            if ([man fileExistsAtPath:headerPath] && contents.count > 0) {
+                DLog(@"%@ already exists, should we skip it? content count: %lu", headerPath, contents.count);
             } else {
                 [man createDirectoryAtPath:headerPath withIntermediateDirectories:TRUE attributes:nil error:nil];
                 NSString *plistPath = [fullPath stringByAppendingPathComponent:@"Info.plist"];
