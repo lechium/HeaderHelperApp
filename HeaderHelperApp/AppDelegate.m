@@ -112,13 +112,18 @@
     
 }
 
+- (void)toDriveArrayTest {
+    NSArray *array = [[HelperClass sharedInstance] driveArray];
+    DLog(@"array: %@", array);
+}
+
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
     // Insert code here to initialize your application
     
     //NSArray *xcArray = [[HelperClass sharedInstance] simRuntimes];
     //DLog(@"xcArray: %@", xcArray);
     //return;
-    
+    [self toDriveArrayTest];
     [[HelperClass sharedInstance] xcodeSearchWithCompletion:^(NSArray<NSDictionary *> *results) {
         //DLog(@"results: %@", results);
         self.xcodeArray = results;

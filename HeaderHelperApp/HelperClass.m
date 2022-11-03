@@ -9,6 +9,9 @@
 #import "HelperClass.h"
 #import "classdump.h"
 #import "NSString-CDExtensions.h"
+#import <sys/stat.h>
+#include <sys/param.h>
+#include <sys/mount.h>
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 @implementation NSString (extra)
@@ -34,6 +37,81 @@
 @end
 
 @implementation HelperClass
+
+- (NSArray *)driveArray {
+    NSMutableArray *deviceArray = [[NSMutableArray alloc] init];
+    struct statfs *buf = NULL;
+    unsigned i, count = 0;
+    
+    count = getmntinfo(&buf, 0);
+    for (i=0; i<count; i++) {
+        char *devName = buf[i].f_mntfromname;
+        char *volName = buf[i].f_mntonname;
+        NSLog(@"volName: %s", volName);
+        
+        unsigned long long freeSize = buf[i].f_blocks;
+        long blockSize = buf[i].f_bsize;
+        unsigned long long bytesAvailable = (freeSize * blockSize)/1024;
+        float mb = bytesAvailable/1024;
+        float gb = mb/1024;
+        if ( (buf[i].f_flags & MNT_LOCAL) > 0 ) {
+            if((buf[i].f_flags & MNT_DONTBROWSE ) == 0) {
+                if(((buf[i].f_flags & MNT_ROOTFS ) == 0) ) {
+                    if ( (buf[i].f_flags & MNT_RDONLY) == 0 ) {
+                        NSString *device = [NSString stringWithUTF8String:devName];
+                        NSString *name = [NSString stringWithUTF8String:volName];
+                        
+                        id plist = [self dictionaryForVolume:device];
+                        NSLog(@"plist: %@", plist);
+                        NSString *content = [plist valueForKey:@"FilesystemUserVisibleName"];
+                        NSString *parentWholeDisk = [plist valueForKey:@"ParentWholeDisk"];
+                        
+                        
+                        NSMutableDictionary *deviceDict = [[NSMutableDictionary alloc] init];
+                        [deviceDict setObject:device forKey:@"device"];
+                        [deviceDict setObject:[name lastPathComponent] forKey:@"name"];
+                        [deviceDict setObject:[NSString stringWithFormat:@"%d", bytesAvailable] forKey:@"bytesAvailable"];
+                        [deviceDict setObject:[NSString stringWithFormat:@"%.0fM", mb] forKey:@"size"];
+                        if (content != nil)
+                            [deviceDict setObject:content forKey:@"FilesystemType"];
+                        
+                        if (parentWholeDisk != nil)
+                            [deviceDict setObject:[NSString stringWithFormat:@"/dev/%@", parentWholeDisk] forKey:@"ParentWholeDisk"];
+                        
+                        //if (gb < 128)
+                            [deviceArray addObject:deviceDict];
+                    }
+                }
+            }
+        }
+        
+    }
+    
+    return deviceArray;
+}
+
+- (NSDictionary *)dictionaryForVolume:(NSString *)volume {
+    //        NSLog(@"volume clip: %@", volume);
+    NSTask *irTask = [[NSTask alloc] init];
+    NSPipe *hdip = [[NSPipe alloc] init];
+    NSFileHandle *hdih = [hdip fileHandleForReading];
+    NSMutableArray *irArgs = [[NSMutableArray alloc] init];
+    [irArgs addObject:@"info"];
+    [irArgs addObject:@"-plist"];
+    [irArgs addObject:volume];
+    [irTask setLaunchPath:@"/usr/sbin/diskutil"];
+    [irTask setArguments:irArgs];
+    //[irTask setStandardError:hdip];
+    [irTask setStandardOutput:hdip];
+    NSLog(@"diskutil %@", [[irTask arguments] componentsJoinedByString:@" "]);
+    [irTask launch];
+    NSData *outData = [hdih readDataToEndOfFile];
+    NSString *error;
+    NSPropertyListFormat format;
+    id plist = [NSPropertyListSerialization propertyListFromData:outData mutabilityOption:kCFPropertyListMutableContainersAndLeaves format:&format errorDescription:&error];
+    //    NSLog(@"error: %@", error);
+    return plist;
+}
 
 + (id)sharedInstance {
     

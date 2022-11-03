@@ -23,6 +23,7 @@ static NSString *const kApplicationSourcePredicateString = @"(kMDItemContentType
 - (NSArray *)simRuntimes;
 - (NSDictionary *)simRuntimesForXcode:(NSString *)xcode;
 - (void)getFileEntitlementsOnMainThread:(NSString *)inputFile withCompletion:(void(^)(NSDictionary *entitlements))block;
+- (NSArray *)driveArray;
 @end
 
 
