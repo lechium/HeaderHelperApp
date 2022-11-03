@@ -47,7 +47,6 @@
     for (i=0; i<count; i++) {
         char *devName = buf[i].f_mntfromname;
         char *volName = buf[i].f_mntonname;
-        NSLog(@"volName: %s", volName);
         
         unsigned long long freeSize = buf[i].f_blocks;
         long blockSize = buf[i].f_bsize;
@@ -55,34 +54,44 @@
         float mb = bytesAvailable/1024;
         float gb = mb/1024;
         if ( (buf[i].f_flags & MNT_LOCAL) > 0 ) {
-            if((buf[i].f_flags & MNT_DONTBROWSE ) == 0) {
-                if(((buf[i].f_flags & MNT_ROOTFS ) == 0) ) {
-                    if ( (buf[i].f_flags & MNT_RDONLY) == 0 ) {
-                        NSString *device = [NSString stringWithUTF8String:devName];
-                        NSString *name = [NSString stringWithUTF8String:volName];
-                        
-                        id plist = [self dictionaryForVolume:device];
-                        NSLog(@"plist: %@", plist);
-                        NSString *content = [plist valueForKey:@"FilesystemUserVisibleName"];
-                        NSString *parentWholeDisk = [plist valueForKey:@"ParentWholeDisk"];
-                        
-                        
-                        NSMutableDictionary *deviceDict = [[NSMutableDictionary alloc] init];
-                        [deviceDict setObject:device forKey:@"device"];
-                        [deviceDict setObject:[name lastPathComponent] forKey:@"name"];
-                        [deviceDict setObject:[NSString stringWithFormat:@"%d", bytesAvailable] forKey:@"bytesAvailable"];
-                        [deviceDict setObject:[NSString stringWithFormat:@"%.0fM", mb] forKey:@"size"];
-                        if (content != nil)
-                            [deviceDict setObject:content forKey:@"FilesystemType"];
-                        
-                        if (parentWholeDisk != nil)
-                            [deviceDict setObject:[NSString stringWithFormat:@"/dev/%@", parentWholeDisk] forKey:@"ParentWholeDisk"];
-                        
-                        //if (gb < 128)
-                            [deviceArray addObject:deviceDict];
-                    }
+            //NSLog(@"volName: %s", volName);
+            
+            //if((buf[i].f_flags & MNT_DONTBROWSE ) == 0) {
+            if(((buf[i].f_flags & MNT_ROOTFS ) == 0) ) {
+                //  if ( (buf[i].f_flags & MNT_RDONLY) == 0 ) {
+                NSString *device = [NSString stringWithUTF8String:devName];
+                NSString *name = [NSString stringWithUTF8String:volName];
+                
+                id plist = [self dictionaryForVolume:device];
+                //NSLog(@"plist: %@", plist);
+                NSString *content = [plist valueForKey:@"FilesystemUserVisibleName"];
+                NSString *parentWholeDisk = [plist valueForKey:@"ParentWholeDisk"];
+                NSString *mountPoint = plist[@"MountPoint"];
+                NSString *runtime = [mountPoint stringByAppendingPathComponent:@"Library/Developer/CoreSimulator/Profiles/Runtimes"];
+                
+                NSMutableDictionary *deviceDict = [[NSMutableDictionary alloc] init];
+                deviceDict[@"MountPoint"] = mountPoint;
+                deviceDict[@"VolumeName"] = plist[@"VolumeName"];
+                [deviceDict setObject:device forKey:@"device"];
+                [deviceDict setObject:[name lastPathComponent] forKey:@"name"];
+                [deviceDict setObject:[NSString stringWithFormat:@"%d", bytesAvailable] forKey:@"bytesAvailable"];
+                [deviceDict setObject:[NSString stringWithFormat:@"%.0fM", mb] forKey:@"size"];
+                if (content != nil)
+                    [deviceDict setObject:content forKey:@"FilesystemType"];
+                
+                if (parentWholeDisk != nil)
+                    [deviceDict setObject:[NSString stringWithFormat:@"/dev/%@", parentWholeDisk] forKey:@"ParentWholeDisk"];
+                
+                //if (gb < 128)
+                if ([[NSFileManager defaultManager] fileExistsAtPath:runtime]){
+                    deviceDict[@"runtimePath"] = runtime;
+                    deviceDict[@"runtime"] = [self runtimeAtRelativePath:runtime];
+                    [deviceArray addObject:deviceDict];
                 }
+               
+                //}
             }
+            //}
         }
         
     }
@@ -103,7 +112,7 @@
     [irTask setArguments:irArgs];
     //[irTask setStandardError:hdip];
     [irTask setStandardOutput:hdip];
-    NSLog(@"diskutil %@", [[irTask arguments] componentsJoinedByString:@" "]);
+    //NSLog(@"diskutil %@", [[irTask arguments] componentsJoinedByString:@" "]);
     [irTask launch];
     NSData *outData = [hdih readDataToEndOfFile];
     NSString *error;
@@ -363,6 +372,23 @@
     
     return xcArray;
     
+}
+
+- (NSDictionary *)runtimeAtRelativePath:(NSString *)runtimesPath {
+    NSFileManager *man = [NSFileManager defaultManager];
+    NSString *relativeRuntime = [[man contentsOfDirectoryAtPath:runtimesPath error:nil] firstObject];
+    //NSArray *contents = [man contentsOfDirectoryAtPath:runtimesPath error:nil];
+    runtimesPath = [runtimesPath stringByAppendingPathComponent:relativeRuntime];
+    runtimesPath = [runtimesPath stringByAppendingPathComponent:@"Contents/Resources/RuntimeRoot"];
+    NSString *systemVersionFile = [runtimesPath stringByAppendingPathComponent:@"System/Library/CoreServices/SystemVersion.plist"];
+    NSDictionary *sysVers = [NSDictionary dictionaryWithContentsOfFile:systemVersionFile];
+    NSString *productName = sysVers[@"ProductName"];
+    NSString *productVersion = sysVers[@"ProductVersion"];
+    NSString *productBuildVersion = sysVers[@"ProductBuildVersion"];
+    NSString *versionString = [NSString stringWithFormat:@"%@ %@ (%@)", productName, productVersion, productBuildVersion];
+    //DLog(@"found a runtime: %@ at %@", versionString, runtimesPath);
+    NSDictionary *platformDict = @{@"name": versionString, @"path": runtimesPath};
+    return platformDict;
 }
 
 - (NSDictionary *)simRuntimesForXcode:(NSString *)xcode {
