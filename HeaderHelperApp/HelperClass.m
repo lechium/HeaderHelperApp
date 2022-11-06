@@ -42,7 +42,11 @@
     NSFileManager *man = [NSFileManager defaultManager];
     NSString *libPath = @"/Library/Developer/CoreSimulator/Profiles/Runtimes";
     if (![man fileExistsAtPath:libPath]){
-        return nil;
+        //return nil;
+        libPath = @"/Library/Developer/CoreSimulator/Volumes";
+        if (![man fileExistsAtPath:libPath]){
+            return nil;
+        }
     }
     NSArray *runtimes = [man contentsOfDirectoryAtPath:libPath error:nil];
     __block NSMutableArray *fullRuntimes = [NSMutableArray new];
