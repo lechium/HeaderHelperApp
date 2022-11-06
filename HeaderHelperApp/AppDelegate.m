@@ -113,7 +113,7 @@
 }
 
 - (void)toDriveArrayTest {
-    NSArray *array = [[HelperClass sharedInstance] driveArray];
+    NSDictionary *array = [[HelperClass sharedInstance] libraryRuntimes];
     DLog(@"array: %@", array);
 }
 

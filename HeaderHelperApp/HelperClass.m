@@ -38,6 +38,26 @@
 
 @implementation HelperClass
 
+- (NSDictionary *)libraryRuntimes {
+    NSFileManager *man = [NSFileManager defaultManager];
+    NSString *libPath = @"/Library/Developer/CoreSimulator/Profiles/Runtimes";
+    if (![man fileExistsAtPath:libPath]){
+        return nil;
+    }
+    NSArray *runtimes = [man contentsOfDirectoryAtPath:libPath error:nil];
+    __block NSMutableArray *fullRuntimes = [NSMutableArray new];
+    [runtimes enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        NSDictionary *rt = [self runtimeAtPath:[libPath stringByAppendingPathComponent:obj]];
+        if (rt) {
+            [fullRuntimes addObject:rt];
+        }
+    }];
+    if (fullRuntimes.count > 0){
+        return @{@"name": @"Library Runtimes", @"path": libPath, @"runtimes": fullRuntimes};
+    }
+    return nil;
+}
+
 - (NSArray *)driveArray {
     NSMutableArray *deviceArray = [[NSMutableArray alloc] init];
     struct statfs *buf = NULL;
@@ -138,8 +158,11 @@
     _xcodeResultsBlock = block;
     results = [NSMutableArray new];
     query_ = [[NSMetadataQuery alloc] init];
-    NSPredicate *predicate
-    = [NSPredicate predicateWithFormat:kApplicationSourcePredicateString];
+    NSDictionary *libRt = [self libraryRuntimes];
+    if (libRt){
+        [results addObject:libRt];
+    }
+    NSPredicate *predicate = [NSPredicate predicateWithFormat:kApplicationSourcePredicateString];
     NSArray *scope = [NSArray arrayWithObject:NSMetadataQueryLocalComputerScope];
     [query_ setSearchScopes:scope];
     NSSortDescriptor *desc
@@ -372,6 +395,19 @@
     
     return xcArray;
     
+}
+
+- (NSDictionary *)runtimeAtPath:(NSString *)path {
+    NSString *runtimesPath = [path stringByAppendingPathComponent:@"Contents/Resources/RuntimeRoot"];
+    NSString *systemVersionFile = [runtimesPath stringByAppendingPathComponent:@"System/Library/CoreServices/SystemVersion.plist"];
+    NSDictionary *sysVers = [NSDictionary dictionaryWithContentsOfFile:systemVersionFile];
+    NSString *productName = sysVers[@"ProductName"];
+    NSString *productVersion = sysVers[@"ProductVersion"];
+    NSString *productBuildVersion = sysVers[@"ProductBuildVersion"];
+    NSString *versionString = [NSString stringWithFormat:@"%@ %@ (%@)", productName, productVersion, productBuildVersion];
+    //DLog(@"found a runtime: %@ at %@", versionString, runtimesPath);
+    NSDictionary *platformDict = @{@"name": versionString, @"path": runtimesPath};
+    return platformDict;
 }
 
 - (NSDictionary *)runtimeAtRelativePath:(NSString *)runtimesPath {
