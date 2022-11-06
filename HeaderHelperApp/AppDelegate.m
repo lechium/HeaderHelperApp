@@ -123,7 +123,7 @@
     //NSArray *xcArray = [[HelperClass sharedInstance] simRuntimes];
     //DLog(@"xcArray: %@", xcArray);
     //return;
-    //[self toDriveArrayTest];
+    [self toDriveArrayTest];
     [[HelperClass sharedInstance] xcodeSearchWithCompletion:^(NSArray<NSDictionary *> *results) {
         //DLog(@"results: %@", results);
         self.xcodeArray = results;

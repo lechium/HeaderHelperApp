@@ -425,7 +425,7 @@
         NSString *productBuildVersion = sysVers[@"ProductBuildVersion"];
         NSString *versionString = [NSString stringWithFormat:@"%@ %@ (%@)", productName, productVersion, productBuildVersion];
         //DLog(@"found a runtime: %@ at %@", versionString, runtimesPath);
-        NSDictionary *platformDict = @{@"name": versionString, @"path": runtimesPath};
+        NSDictionary *platformDict = @{@"name": versionString, @"path": newPath};
         [runtimeArray addObject:platformDict];
     }];
     
