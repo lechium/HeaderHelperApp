@@ -113,7 +113,7 @@
 }
 
 - (void)toDriveArrayTest {
-    NSDictionary *array = [[HelperClass sharedInstance] libraryRuntimes];
+    NSArray *array = [[HelperClass sharedInstance] driveArray];
     DLog(@"array: %@", array);
 }
 
@@ -123,7 +123,7 @@
     //NSArray *xcArray = [[HelperClass sharedInstance] simRuntimes];
     //DLog(@"xcArray: %@", xcArray);
     //return;
-    [self toDriveArrayTest];
+    //[self toDriveArrayTest];
     [[HelperClass sharedInstance] xcodeSearchWithCompletion:^(NSArray<NSDictionary *> *results) {
         //DLog(@"results: %@", results);
         self.xcodeArray = results;

@@ -42,11 +42,7 @@
     NSFileManager *man = [NSFileManager defaultManager];
     NSString *libPath = @"/Library/Developer/CoreSimulator/Profiles/Runtimes";
     if (![man fileExistsAtPath:libPath]){
-        //return nil;
-        libPath = @"/Library/Developer/CoreSimulator/Volumes";
-        if (![man fileExistsAtPath:libPath]){
-            return nil;
-        }
+        return [[self driveArray] firstObject];
     }
     NSArray *runtimes = [man contentsOfDirectoryAtPath:libPath error:nil];
     __block NSMutableArray *fullRuntimes = [NSMutableArray new];
@@ -109,7 +105,7 @@
                 //if (gb < 128)
                 if ([[NSFileManager defaultManager] fileExistsAtPath:runtime]){
                     deviceDict[@"runtimePath"] = runtime;
-                    deviceDict[@"runtime"] = [self runtimeAtRelativePath:runtime];
+                    deviceDict[@"runtimes"] = [self runtimesAtRelativePath:runtime];
                     [deviceArray addObject:deviceDict];
                 }
                
@@ -414,21 +410,26 @@
     return platformDict;
 }
 
-- (NSDictionary *)runtimeAtRelativePath:(NSString *)runtimesPath {
+- (NSArray *)runtimesAtRelativePath:(NSString *)runtimesPath {
     NSFileManager *man = [NSFileManager defaultManager];
-    NSString *relativeRuntime = [[man contentsOfDirectoryAtPath:runtimesPath error:nil] firstObject];
-    //NSArray *contents = [man contentsOfDirectoryAtPath:runtimesPath error:nil];
-    runtimesPath = [runtimesPath stringByAppendingPathComponent:relativeRuntime];
-    runtimesPath = [runtimesPath stringByAppendingPathComponent:@"Contents/Resources/RuntimeRoot"];
-    NSString *systemVersionFile = [runtimesPath stringByAppendingPathComponent:@"System/Library/CoreServices/SystemVersion.plist"];
-    NSDictionary *sysVers = [NSDictionary dictionaryWithContentsOfFile:systemVersionFile];
-    NSString *productName = sysVers[@"ProductName"];
-    NSString *productVersion = sysVers[@"ProductVersion"];
-    NSString *productBuildVersion = sysVers[@"ProductBuildVersion"];
-    NSString *versionString = [NSString stringWithFormat:@"%@ %@ (%@)", productName, productVersion, productBuildVersion];
-    //DLog(@"found a runtime: %@ at %@", versionString, runtimesPath);
-    NSDictionary *platformDict = @{@"name": versionString, @"path": runtimesPath};
-    return platformDict;
+    __block NSMutableArray *runtimeArray = [NSMutableArray new];
+    NSArray *runtimes = [man contentsOfDirectoryAtPath:runtimesPath error:nil];
+    [runtimes enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        NSString *newPath = [runtimesPath stringByAppendingPathComponent:obj];
+        //NSArray *contents = [man contentsOfDirectoryAtPath:runtimesPath error:nil];
+        newPath = [newPath stringByAppendingPathComponent:@"Contents/Resources/RuntimeRoot"];
+        NSString *systemVersionFile = [newPath stringByAppendingPathComponent:@"System/Library/CoreServices/SystemVersion.plist"];
+        NSDictionary *sysVers = [NSDictionary dictionaryWithContentsOfFile:systemVersionFile];
+        NSString *productName = sysVers[@"ProductName"];
+        NSString *productVersion = sysVers[@"ProductVersion"];
+        NSString *productBuildVersion = sysVers[@"ProductBuildVersion"];
+        NSString *versionString = [NSString stringWithFormat:@"%@ %@ (%@)", productName, productVersion, productBuildVersion];
+        //DLog(@"found a runtime: %@ at %@", versionString, runtimesPath);
+        NSDictionary *platformDict = @{@"name": versionString, @"path": runtimesPath};
+        [runtimeArray addObject:platformDict];
+    }];
+    
+    return runtimeArray;
 }
 
 - (NSDictionary *)simRuntimesForXcode:(NSString *)xcode {
