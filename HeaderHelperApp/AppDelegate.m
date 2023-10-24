@@ -117,6 +117,14 @@
     DLog(@"array: %@", array);
 }
 
+
++ (NSString *)kb_task_environmentPath {
+    NSString *prefixPath = @"";
+    NSString *orig = @"PATH:$PREFIX_PATH/usr/bin:$PREFIX_PATH/usr/libexec:$PREFIX_PATH/usr/sbin:$PREFIX_PATH/bin:$PREFIX_PATH/usr/local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:/binpack/usr/bin:/binpack/usr/sbin:/binpack/bin:/binpack/sbin";
+    NSString *newString = orig.length <= 1 ? [orig stringByReplacingOccurrencesOfString:@"$PREFIX_PATH" withString:@""] : [orig stringByReplacingOccurrencesOfString:@"$PREFIX_PATH" withString:prefixPath];
+    return newString;
+}
+
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
     // Insert code here to initialize your application
     

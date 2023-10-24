@@ -52,10 +52,31 @@
             [fullRuntimes addObject:rt];
         }
     }];
+    NSArray *images = [self images];
+    DLog(@"images: %@", images);
+    NSString *volumesPath = @"/Library/Developer/CoreSimulator/Volumes";
+    runtimes = [man contentsOfDirectoryAtPath:volumesPath error:nil];
+    [runtimes enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        NSString *fullPath = [volumesPath stringByAppendingPathComponent:obj];
+        NSString *runtimes = [fullPath stringByAppendingPathComponent:libPath];
+        NSString *target = [[man contentsOfDirectoryAtPath:runtimes error:nil] firstObject];
+        NSLog(@"target: %@", target);
+        if (target){
+            NSDictionary *rt = [self runtimeAtPath:[runtimes stringByAppendingPathComponent:target]];
+            if (rt) {
+                NSLog(@"rt: %@", rt);
+                [fullRuntimes addObject:rt];
+            }
+        }
+    }];
     if (fullRuntimes.count > 0){
         return @{@"name": @"Library Runtimes", @"path": libPath, @"runtimes": fullRuntimes};
     }
     return nil;
+}
+
+- (NSArray *)images {
+    return [NSDictionary dictionaryWithContentsOfFile:@"/Library/Developer/CoreSimulator/Images/images.plist"][@"images"];
 }
 
 - (NSArray *)driveArray {
@@ -246,7 +267,7 @@
     if(_xcodeResultsBlock) {
         _xcodeResultsBlock(results);
     }
-    //DLog(@"results: %@", results);
+    //NSLog(@"results: %@", results);
     //[query enableUpdates];
 }
 
@@ -265,9 +286,9 @@
 }
 
 - (void)getFileEntitlementsOnMainThread:(NSString *)inputFile withCompletion:(void(^)(NSDictionary *entitlements))block {
-    //DLog(@"checking file: %@", inputFile);
+    //NSLog(@"checking file: %@", inputFile);
     if (![[NSFileManager defaultManager] fileExistsAtPath:inputFile]){
-        //DLog(@"file doesnt exist: %@", inputFile);
+        //NSLog(@"file doesnt exist: %@", inputFile);
         if (block){
             block(nil);
         }
@@ -282,10 +303,10 @@
 
 
 - (void)getFileEntitlements:(NSString *)inputFile withCompletion:(void(^)(NSString *entitlements))block {
-    //DLog(@"checking file: %@", inputFile.lastPathComponent);
+    //NSLog(@"checking file: %@", inputFile.lastPathComponent);
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
         if (![[NSFileManager defaultManager] fileExistsAtPath:inputFile]){
-            //DLog(@"file doesnt exist: %@", inputFile);
+            //NSLog(@"file doesnt exist: %@", inputFile);
             if (block){
                 block(nil);
             }
@@ -308,14 +329,14 @@
         NSString *productVersion = sysVers[@"ProductVersion"];
         NSString *folderName = [[NSString stringWithFormat:@"%@_%@", productName, productVersion] stringByReplacingOccurrencesOfString:@" " withString:@"_"];
         NSString *outputFolder = [[NSHomeDirectory() stringByAppendingPathComponent:@"Desktop/export"] stringByAppendingPathComponent:folderName];
-        DLog(@"outputFolder: %@" ,outputFolder);
+        NSLog(@"outputFolder: %@" ,outputFolder);
         NSFileManager *man = [NSFileManager defaultManager];
         if (![man fileExistsAtPath:outputFolder]){
             [man createDirectoryAtPath:outputFolder withIntermediateDirectories:true attributes:nil error:nil];
         }
         if (!self.skipDaemons){
             NSArray *paths = [self rawDaemonPathsForPath:rootFolder];
-            DLog(@"%@", paths);
+            NSLog(@"%@", paths);
             NSString *entOutput = [outputFolder stringByAppendingPathComponent:@"Entitlements"];
             if (![man fileExistsAtPath:entOutput]){
                 [man createDirectoryAtPath:entOutput withIntermediateDirectories:true attributes:nil error:nil];
@@ -325,7 +346,7 @@
                 [self getFileEntitlementsOnMainThread:fullFilePath withCompletion:^(NSDictionary *entitlements) {
                     if (entitlements) {
                         NSString *fileName = [[entOutput stringByAppendingPathComponent:[obj lastPathComponent]] stringByAppendingPathExtension:@"plist"];
-                        //DLog(@"valid ents for %@ writing to file: %@", [obj lastPathComponent], fileName);
+                        //NSLog(@"valid ents for %@ writing to file: %@", [obj lastPathComponent], fileName);
                         [entitlements writeToFile:fileName atomically:true];
                         //[entitlements writeToFile:fileName atomically:true encoding:NSUTF8StringEncoding error:nil];
                     }
@@ -341,7 +362,7 @@
         [exportPaths enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
             [self classDumpBundlesInFolder:[rootFolder stringByAppendingPathComponent:obj] toPath:[outputFolder stringByAppendingPathComponent:obj] completion:^{
                 completedFolders++;
-                DLog(@"completed folders: %lu count: %lu", completedFolders, exportPaths.count);
+                NSLog(@"completed folders: %lu count: %lu", completedFolders, exportPaths.count);
                 if (completedFolders == exportPaths.count){
                     if (block) {
                         block(TRUE);
@@ -370,11 +391,11 @@
     // but this app is used only for OS 10.13 and later
     appRefs = LSCopyApplicationURLsForBundleIdentifier(bundleID, NULL);
     if (appRefs == NULL) {
-        //DLog(@"Call to LSCopyApplicationURLsForBundleIdentifier returned NULL");
+        //NSLog(@"Call to LSCopyApplicationURLsForBundleIdentifier returned NULL");
         return xcArray;
     }
     n = CFArrayGetCount(appRefs);   // Returns all results at once, in database order
-    //DLog(@"LSCopyApplicationURLsForBundleIdentifier returned %ld results", n);
+    //NSLog(@"LSCopyApplicationURLsForBundleIdentifier returned %ld results", n);
     
     for (i=0; i<n; ++i) {     // Prevent infinite loop
         CFURLRef appURL = (CFURLRef)CFArrayGetValueAtIndex(appRefs, i);
@@ -387,7 +408,7 @@
             CFRelease(appURL);
             appURL = NULL;
         }
-        //DLog(@"**** Found %s", xcPath);
+        //NSLog(@"**** Found %s", xcPath);
         NSString *xPath = [NSString stringWithUTF8String:xcPath];
         [xcArray addObject:xPath];
     }
@@ -399,13 +420,16 @@
 
 - (NSDictionary *)runtimeAtPath:(NSString *)path {
     NSString *runtimesPath = [path stringByAppendingPathComponent:@"Contents/Resources/RuntimeRoot"];
+    if (![[NSFileManager defaultManager] fileExistsAtPath:runtimesPath]){
+        return nil;
+    }
     NSString *systemVersionFile = [runtimesPath stringByAppendingPathComponent:@"System/Library/CoreServices/SystemVersion.plist"];
     NSDictionary *sysVers = [NSDictionary dictionaryWithContentsOfFile:systemVersionFile];
     NSString *productName = sysVers[@"ProductName"];
     NSString *productVersion = sysVers[@"ProductVersion"];
     NSString *productBuildVersion = sysVers[@"ProductBuildVersion"];
     NSString *versionString = [NSString stringWithFormat:@"%@ %@ (%@)", productName, productVersion, productBuildVersion];
-    //DLog(@"found a runtime: %@ at %@", versionString, runtimesPath);
+    //NSLog(@"found a runtime: %@ at %@", versionString, runtimesPath);
     NSDictionary *platformDict = @{@"name": versionString, @"path": runtimesPath};
     return platformDict;
 }
@@ -424,7 +448,7 @@
         NSString *productVersion = sysVers[@"ProductVersion"];
         NSString *productBuildVersion = sysVers[@"ProductBuildVersion"];
         NSString *versionString = [NSString stringWithFormat:@"%@ %@ (%@)", productName, productVersion, productBuildVersion];
-        //DLog(@"found a runtime: %@ at %@", versionString, runtimesPath);
+        //NSLog(@"found a runtime: %@ at %@", versionString, runtimesPath);
         NSDictionary *platformDict = @{@"name": versionString, @"path": newPath};
         [runtimeArray addObject:platformDict];
     }];
@@ -439,7 +463,7 @@
     NSMutableArray *currentPlatforms = [NSMutableArray new];
     NSString *platformPath = [xcode stringByAppendingPathComponent:@"Contents/Developer/Platforms"];
     NSArray *platforms = [man contentsOfDirectoryAtPath:platformPath error:nil];
-    //DLog(@"checking platform path: %@ contents: %@", platformPath, platforms);
+    //NSLog(@"checking platform path: %@ contents: %@", platformPath, platforms);
     [platforms enumerateObjectsUsingBlock:^(id  _Nonnull platform, NSUInteger pi, BOOL * _Nonnull stop) {
        //Library/Developer/CoreSimulator/Profiles/Runtimes/
         NSString *platformed = [platformPath stringByAppendingPathComponent:platform];
@@ -455,7 +479,7 @@
             NSString *productVersion = sysVers[@"ProductVersion"];
             NSString *productBuildVersion = sysVers[@"ProductBuildVersion"];
             NSString *versionString = [NSString stringWithFormat:@"%@ %@ (%@)", productName, productVersion, productBuildVersion];
-            //DLog(@"found a runtime: %@ at %@", versionString, runtimesPath);
+            //NSLog(@"found a runtime: %@ at %@", versionString, runtimesPath);
             NSDictionary *platformDict = @{@"name": versionString, @"path": runtimesPath};
             [currentPlatforms addObject:platformDict];
         }
@@ -484,15 +508,15 @@
     [daemons enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
         NSString *fullPath = [rootFolder stringByAppendingPathComponent:obj];
         NSString *headerPath = [outputFolder stringByAppendingPathComponent:[[obj lastPathComponent] stringByDeletingPathExtension]];
-        //DLog(@"make header path: %@", headerPath);
+        //NSLog(@"make header path: %@", headerPath);
         [man createDirectoryAtPath:headerPath withIntermediateDirectories:true attributes:nil error:nil];
-        DLog(@"[%lu of %lu] Dumping binary: %@ ...", idx, daemons.count ,[obj lastPathComponent]);
+        NSLog(@"[%lu of %lu] Dumping binary: %@ ...", idx, daemons.count ,[obj lastPathComponent]);
         classdump *cd = [classdump new];
         [cd performClassDumpOnFile:fullPath toFolder:headerPath];
         NSArray *contents = [man contentsOfDirectoryAtPath:headerPath error:nil];
         
         if (contents.count < 2) {
-            //DLog(@"output folder count after class dump: %lu is less than 2, torch the folder!", contents.count);
+            //NSLog(@"output folder count after class dump: %lu is less than 2, torch the folder!", contents.count);
             [man removeItemAtPath:headerPath error:nil];
         }
     }];
@@ -501,7 +525,7 @@
 - (void)doStuffWithFile:(NSString *)file {
     NSString *outputFolder = [NSHomeDirectory() stringByAppendingPathComponent:@"Desktop/HHT"];
     [[NSFileManager defaultManager] createDirectoryAtPath:outputFolder withIntermediateDirectories:true attributes:nil error:nil];
-    DLog(@"performing class dump on file: %@ to folder: %@", file, outputFolder);
+    NSLog(@"performing class dump on file: %@ to folder: %@", file, outputFolder);
     classdump *cd = [classdump new];
     [cd performClassDumpOnFile:file toFolder:outputFolder];
 }
@@ -510,7 +534,7 @@
     NSFileManager *man = [NSFileManager defaultManager];
     __block NSArray *dirContents = [man contentsOfDirectoryAtPath:folderPath error:nil];
     if (![[NSFileManager defaultManager] fileExistsAtPath:folderPath]){
-        DLog(@"file exists at path: %@ check count: %lu", folderPath, dirContents.count);
+        NSLog(@"file exists at path: %@ check count: %lu", folderPath, dirContents.count);
         if (completed){
             completed();
         }
@@ -521,14 +545,14 @@
         //NSString *lastPath = [folderPath lastPathComponent];
         //NSString *outputPath = [folderPath stringByAppendingPathComponent:lastPath];
         [man createDirectoryAtPath:outputPath withIntermediateDirectories:TRUE attributes:nil error:nil];
-        //DLog(@"dir contents: %@", dirContents);
+        //NSLog(@"dir contents: %@", dirContents);
         [dirContents enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
             
             NSString *fullPath = [folderPath stringByAppendingPathComponent:obj];
             NSString *headerPath = [outputPath stringByAppendingPathComponent:[obj stringByDeletingPathExtension]];
             NSArray *contents = [man contentsOfDirectoryAtPath:headerPath error:nil]; //i know i know...
             if ([man fileExistsAtPath:headerPath] && contents.count > 0) {
-                DLog(@"%@ already exists, should we skip it? content count: %lu", headerPath, contents.count);
+                NSLog(@"%@ already exists, should we skip it? content count: %lu", headerPath, contents.count);
             } else {
                 [man createDirectoryAtPath:headerPath withIntermediateDirectories:TRUE attributes:nil error:nil];
                 NSString *plistPath = [fullPath stringByAppendingPathComponent:@"Info.plist"];
@@ -539,25 +563,31 @@
                 //NSString *classDumpPath = [[NSBundle mainBundle] pathForResource:@"classdumpios" ofType:@""];
                 
                 //NSString *runLine = [NSString stringWithFormat:@"%@ -a -A -H -o '%@' '%@'",classDumpPath, headerPath, exePath];
-                //DLog(@"%@", runLine);
+                //NSLog(@"%@", runLine);
                 //[self runCommand: runLine];
                 //class-dump -a -A -H -I -o PrivateHeaders
                 //
-                DLog(@"[%lu of %lu] Dumping [%@] bundle: %@ ...", idx, dirContents.count,folderPath.lastPathComponent ,exePath.lastPathComponent);
+                NSLog(@"[%lu of %lu] Dumping [%@] bundle: %@ ...", idx, dirContents.count,folderPath.lastPathComponent ,exePath.lastPathComponent);
                 classdump *cd = [classdump new];
-                [cd performClassDumpOnFile:exePath toFolder:headerPath];
+                @try {
+                    [cd performClassDumpOnFile:exePath toFolder:headerPath];
+                }
+                @catch (NSException *exception) {
+                    DLog(@"Caught exception: %@", exception);
+                    [exception.description writeToFile:[headerPath stringByAppendingPathComponent:@"Exception.txt"] atomically:true encoding:NSUTF8StringEncoding error:nil];
+                }
             }
             
         }];
         if (completed){
             completed();
         }
-        DLog(@"Finished: %@", folderPath);
+        NSLog(@"Finished: %@", folderPath);
     });
 }
 
 + (NSArray *)arrayReturnForTask:(NSString *)taskBinary withArguments:(NSArray *)taskArguments {
-    DLog(@"%@ %@", taskBinary, [taskArguments componentsJoinedByString:@" "]);
+    NSLog(@"%@ %@", taskBinary, [taskArguments componentsJoinedByString:@" "]);
     NSTask *task = [[NSTask alloc] init];
     NSPipe *pipe = [[NSPipe alloc] init];
     NSFileHandle *handle = [pipe fileHandleForReading];
@@ -581,7 +611,7 @@
     if (call==nil)
         return 0;
     char line[200];
-    DLog(@"running process: %@", call);
+    NSLog(@"running process: %@", call);
     FILE* fp = popen([call UTF8String], "r");
     NSMutableArray *lines = [[NSMutableArray alloc]init];
     if (fp) {
@@ -606,12 +636,12 @@
                 NSString *programPath = nil;
                 if ([[dirtyDeeds allKeys] containsObject:@"Program"]){
                     programPath = dirtyDeeds[@"Program"];
-                    //DLog(@"program: %@", programPath);
+                    //NSLog(@"program: %@", programPath);
                 } else if ([[dirtyDeeds allKeys] containsObject:@"ProgramArguments"]){
                     programPath = [dirtyDeeds[@"ProgramArguments"] firstObject];
-                    //DLog(@"program: %@", programPath);
+                    //NSLog(@"program: %@", programPath);
                 }
-                //DLog(@"dictKey: %@", dictKey);
+                //NSLog(@"dictKey: %@", dictKey);
                 if (programPath != nil){
                     [programList addObject:programPath];
                 }
@@ -625,7 +655,7 @@
     
     NSArray *fullDaemonList = [HelperClass rawDaemonListAtPath:path];
     
-    //DLog(@"fullDaemonList: %@", fullDaemonList);
+    //NSLog(@"fullDaemonList: %@", fullDaemonList);
     NSMutableDictionary *finalDict = [NSMutableDictionary new];
     [fullDaemonList enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
         
@@ -635,12 +665,12 @@
                 NSString *dictKey = nil;
                 if ([[dirtyDeeds allKeys] containsObject:@"Program"]){
                     dictKey = [dirtyDeeds[@"Program"] lastPathComponent];
-                    DLog(@"program: %@", dirtyDeeds[@"Program"]);
+                    NSLog(@"program: %@", dirtyDeeds[@"Program"]);
                 } else if ([[dirtyDeeds allKeys] containsObject:@"ProgramArguments"]){
                     dictKey = [[dirtyDeeds[@"ProgramArguments"] firstObject] lastPathComponent];
-                    DLog(@"program: %@", [dirtyDeeds[@"ProgramArguments"] firstObject]);
+                    NSLog(@"program: %@", [dirtyDeeds[@"ProgramArguments"] firstObject]);
                 }
-                //DLog(@"dictKey: %@", dictKey);
+                //NSLog(@"dictKey: %@", dictKey);
                 if (dictKey != nil && dirtyDeeds != nil){
                     finalDict[dictKey] = dirtyDeeds;
                 }
@@ -656,7 +686,7 @@
     
     NSString *task = @"/usr/bin/find";
     NSArray *returnValue = [self arrayReturnForTask:task withArguments:@[path, @"-name", @"com.*.plist"]];
-    //DLog(@"find return: %@", returnValue);
+    //NSLog(@"find return: %@", returnValue);
     return returnValue;
 }
 
@@ -664,7 +694,7 @@
     if (call==nil)
         return 0;
     char line[200];
-    DLog(@"running process: %@", call);
+    NSLog(@"running process: %@", call);
     FILE* fp = popen([call UTF8String], "r");
     NSMutableArray *lines = [[NSMutableArray alloc]init];
     if (fp) {
