@@ -358,7 +358,7 @@
         
         //done with daemons et al
         __block NSInteger completedFolders = 0;
-        NSArray *exportPaths = @[@"Applications", @"System/Library/Frameworks", @"System/Library/PrivateFrameworks", @"System/Library/HIDPlugins/ServicePlugins", @"System/Library/TVSystemMenuModules"];
+        NSArray *exportPaths = @[@"Applications", @"System/Library/Frameworks", @"System/Library/PrivateFrameworks", @"System/Library/HIDPlugins/ServicePlugins", @"System/Library/TVSystemMenuModules", @"usr/lib", @"usr/bin", @"usr/sbin"];
         [exportPaths enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
             [self classDumpBundlesInFolder:[rootFolder stringByAppendingPathComponent:obj] toPath:[outputFolder stringByAppendingPathComponent:obj] completion:^{
                 completedFolders++;
